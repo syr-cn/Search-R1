@@ -40,6 +40,7 @@ from verl.trainer.ppo import core_algos
 from verl.utils.seqlen_balancing import get_seqlen_balanced_partitions, log_seqlen_unbalance
 
 import re
+import shutil
 from search_r1.llm_agent.generation import LLMGenerationManager, GenerationConfig
 
 WorkerType = Type[Worker]
@@ -634,6 +635,25 @@ class RayPPOTrainer(object):
                 self.config.trainer.default_hdfs_dir, 'critic')
             self.critic_wg.save_checkpoint(critic_local_path, critic_remote_path)
 
+    def _save_checkpoint_best(self):
+        # Remove old best models
+        best_models_dir = os.path.join(self.config.trainer.default_local_dir, 'actor')
+        if os.path.exists(best_models_dir):
+            for item in os.listdir(best_models_dir):
+                if item.startswith('best_step_'):
+                    item_path = os.path.join(best_models_dir, item)
+                    if os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+
+        # Save new best model
+        actor_local_path = os.path.join(self.config.trainer.default_local_dir, 'actor',
+                                        f'best_step_{self.global_steps}')
+        actor_remote_path = None if self.config.trainer.default_hdfs_dir is None else os.path.join(
+            self.config.trainer.default_hdfs_dir, 'actor')
+        self.actor_rollout_wg.save_checkpoint(actor_local_path, actor_remote_path)
+
+        assert not self.use_critic
+
     def _balance_batch(self, batch: DataProto, metrics, logging_prefix='global_seqlen'):
         """Reorder the data on single controller such that each dp rank gets similar total tokens"""
         attention_mask = batch.batch['attention_mask']
@@ -692,6 +712,7 @@ class RayPPOTrainer(object):
         )
 
         # start training loop
+        self.best_reward = float('-inf')
         for epoch in range(self.config.trainer.total_epochs):
             for batch_dict in self.train_dataloader:
                 print(f'epoch {epoch}, step {self.global_steps}')
@@ -837,6 +858,10 @@ class RayPPOTrainer(object):
                 metrics.update(compute_data_metrics(batch=batch, use_critic=self.use_critic))
                 metrics.update(compute_timing_metrics(batch=batch, timing_raw=timing_raw))
 
+                if metrics['critic/rewards/mean'] > self.best_reward:
+                    with _timer('save_best_checkpoint', timing_raw):
+                        self._save_checkpoint_best()
+                    self.best_reward = max(self.best_reward, metrics['critic/rewards/mean'])
                 # TODO: make a canonical logger that supports various backend
                 logger.log(data=metrics, step=self.global_steps)
 

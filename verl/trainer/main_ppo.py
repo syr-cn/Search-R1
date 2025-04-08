@@ -21,6 +21,7 @@ from verl.utils.reward_score import qa_em
 from verl.trainer.ppo.ray_trainer import RayPPOTrainer
 import re
 import numpy as np
+import json
 
 def _select_rm_score_fn(data_source):
     if data_source in ['nq', 'triviaqa', 'popqa', 'hotpotqa', '2wikimultihopqa', 'musique', 'bamboogle']:
@@ -33,10 +34,11 @@ class RewardManager():
     """The reward manager.
     """
 
-    def __init__(self, tokenizer, num_examine, format_score=0.) -> None:
+    def __init__(self, tokenizer, num_examine, format_score=0., log_path=None) -> None:
         self.tokenizer = tokenizer
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
         self.format_score = format_score
+        self.log_path = log_path
 
     def __call__(self, data: DataProto):
         """We will expand this function gradually based on the available datasets"""
@@ -86,7 +88,17 @@ class RewardManager():
             if already_print_data_sources[data_source] < self.num_examine:
                 already_print_data_sources[data_source] += 1
                 print(sequences_str)
-        
+                if self.log_path is not None:
+                    assert self.log_path.endswith('.jsonl')
+                    log_info = {
+                        'data_source': data_source,
+                        'ground_truth': ground_truth['target'].tolist()[0],
+                        'response': sequences_str,
+                        'score': score
+                    }
+                    with open(self.log_path, 'a+') as f:
+                        f.write(json.dumps(log_info) + '\n')
+
         # print(f"[DEBUG] all_scores: {all_scores}")
         # print(f"[DEBUG] all_scores shape: {np.array(all_scores).shape}")
         # print(f"[DEBUG] all_scores mean: {np.mean(all_scores)}")
@@ -180,10 +192,12 @@ def main_task(config):
         role_worker_mapping[Role.RewardModel] = ray.remote(RewardModelWorker)
         mapping[Role.RewardModel] = global_pool_id
 
-    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0)
+    train_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/train/{config.trainer.experiment_name}.jsonl'
+    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0, log_path=train_log_jsonl)
 
     # Note that we always use function-based RM for validation
-    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1)
+    val_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/val/{config.trainer.experiment_name}.jsonl'
+    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1, log_path=val_log_jsonl)
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
     trainer = RayPPOTrainer(config=config,

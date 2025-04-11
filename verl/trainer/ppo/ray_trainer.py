@@ -279,6 +279,17 @@ def compute_data_metrics(batch, use_critic=True):
 
     return metrics
 
+def compute_throughout_metrics(batch: DataProto, timing_raw: Dict[str, float], n_gpus: int) -> Dict[str, float]:
+    total_num_tokens = sum(batch.meta_info["global_token_num"])
+    time = timing_raw["step"]
+    # estimated_flops, promised_flops = flops_function.estimate_flops(num_tokens, time)
+    # f'Actual TFLOPs/s/GPU​': estimated_flops/(n_gpus),
+    # f'Theoretical TFLOPs/s/GPU​': promised_flops,
+    return {
+        "perf/total_num_tokens": total_num_tokens,
+        "perf/time_per_step": time,
+        "perf/throughput": total_num_tokens / (time * n_gpus),
+    }
 
 def compute_timing_metrics(batch, timing_raw):
     response_info = _compute_response_info(batch)
@@ -857,6 +868,9 @@ class RayPPOTrainer(object):
                 # collect metrics
                 metrics.update(compute_data_metrics(batch=batch, use_critic=self.use_critic))
                 metrics.update(compute_timing_metrics(batch=batch, timing_raw=timing_raw))
+                
+                n_gpus = self.config.trainer.n_gpus_per_node
+                metrics.update(compute_throughout_metrics(batch=batch, timing_raw=timing_raw, n_gpus=n_gpus))
 
                 if metrics['critic/rewards/mean'] > self.best_reward:
                     with _timer('save_best_checkpoint', timing_raw):

@@ -19,6 +19,7 @@ from verl import DataProto
 import torch
 from verl.utils.reward_score import qa_em
 from verl.trainer.ppo.ray_trainer import RayPPOTrainer
+from verl.trainer.ppo.ray_dapo_trainer import RayDAPOTrainer
 import re
 import numpy as np
 import json
@@ -200,7 +201,11 @@ def main_task(config):
     val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1, log_path=val_log_jsonl)
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
-    trainer = RayPPOTrainer(config=config,
+    if config.algorithm.filter_groups.enable:
+        Trainer = RayDAPOTrainer
+    else:
+        Trainer = RayPPOTrainer
+    trainer = Trainer(config=config,
                             tokenizer=tokenizer,
                             role_worker_mapping=role_worker_mapping,
                             resource_pool_manager=resource_pool_manager,

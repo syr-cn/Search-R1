@@ -30,6 +30,8 @@ if __name__ == '__main__':
     parser.add_argument('--hdfs_dir', default=None)
     parser.add_argument('--template_type', type=str, default='base')
     parser.add_argument('--data_sources', default='nq')
+    parser.add_argument('--filename', default='test')
+    parser.add_argument('--make_subset', action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -52,6 +54,11 @@ if __name__ == '__main__':
         else:
             print(f'Using the {data_source} train dataset...')
             test_dataset = dataset['train']
+        
+        n_subset = 1000
+        if args.make_subset and len(test_dataset) > n_subset:
+            print(f'Randomly sampling {n_subset} samples from {data_source} test dataset...')
+            test_dataset = test_dataset.shuffle(seed=42).select(range(n_subset))
 
         # add a row to each data item that represents a unique id
         def make_map_fn(split):
@@ -92,7 +99,7 @@ if __name__ == '__main__':
     hdfs_dir = args.hdfs_dir
 
     all_test_dataset = datasets.concatenate_datasets(all_dataset)
-    all_test_dataset.to_parquet(os.path.join(local_dir, 'test.parquet'))
+    all_test_dataset.to_parquet(os.path.join(local_dir, f'{args.filename}.parquet'))
 
     if hdfs_dir is not None:
         makedirs(hdfs_dir)

@@ -1,5 +1,5 @@
 
-file_path=/the/path/you/save/corpus
+file_path=/mnt/finder/shiyr/code/R1/Search-R1/data
 index_file=$file_path/e5_Flat.index
 corpus_file=$file_path/wiki-18.jsonl
 retriever=intfloat/e5-base-v2

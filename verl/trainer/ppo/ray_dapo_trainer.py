@@ -15,6 +15,37 @@ from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 
 from search_r1.llm_agent.generation import LLMGenerationManager, GenerationConfig
 
+from torch.nn.functional import pad
+from tensordict import TensorDict
+
+def pad_batches(batch_list, pad_id):
+    # Determine max N from variable-length tensors (N=2047 inferred from keys)
+    max_N = max(batch['responses'].size(1) for batch in batch_list)
+    max_total = max(batch['attention_mask'].size(1) for batch in batch_list)
+
+    padded_batches = []
+    for batch in batch_list:
+        pad_len = max_N - batch['responses'].size(1)
+        total_pad = max_total - batch['attention_mask'].size(1)
+        
+        def pad_tensor(t, value, target_len):
+            return pad(t, (0, target_len - t.size(1)), value=value) if t.size(1) < target_len else t
+
+        padded = {
+            'attention_mask': pad_tensor(batch['attention_mask'], 0, max_total),
+            'info_mask': pad_tensor(batch['info_mask'], 0, max_total),
+            'input_ids': pad_tensor(batch['input_ids'], pad_id, max_total),
+            'old_log_probs': pad_tensor(batch['old_log_probs'], 0.0, max_N),
+            'position_ids': pad_tensor(batch['position_ids'], 0, max_total),
+            'prompts': batch['prompts'],  # already 2048
+            'responses': pad_tensor(batch['responses'], pad_id, max_N),
+            'responses_with_info_mask': pad_tensor(batch['responses_with_info_mask'], pad_id, max_N),
+            'token_level_rewards': pad_tensor(batch['token_level_rewards'], 0.0, max_N),
+            'token_level_scores': pad_tensor(batch['token_level_scores'], 0.0, max_N),
+        }
+        padded_batches.append(padded)
+        padded_batches = [TensorDict(b, batch_size=b['attention_mask'].size(0)) for b in padded_batches]
+    return padded_batches
 
 class RayDAPOTrainer(RayPPOTrainer):
     def fit(self):
@@ -88,10 +119,9 @@ class RayDAPOTrainer(RayPPOTrainer):
                         batch = batch.repeat(repeat_times=self.config.actor_rollout_ref.rollout.n, interleave=True)
                         batch = batch.union(gen_batch_output)
 
-                ####################
-                # Below is aLL about agents - the "LLM + forloop"
-                ####################
-                # with _timer('step', timing_raw):
+                    ####################
+                    # Below is aLL about agents - the "LLM + forloop"
+                    ####################
                     else:
                         first_input_ids = gen_batch.batch['input_ids'][:, -gen_config.max_start_length:].clone().long()
 
@@ -176,14 +206,15 @@ class RayDAPOTrainer(RayPPOTrainer):
                         if batch is None:
                             batch = new_batch
                         else:
+                            batch.batch, new_batch.batch = pad_batches([batch.batch, new_batch.batch], pad_id=self.tokenizer.pad_token_id)
                             batch = DataProto.concat([batch, new_batch])
 
                         prompt_bsz = self.config.data.train_batch_size
                         if num_prompt_in_batch < prompt_bsz:
-                            print(f'{num_prompt_in_batch=} < {prompt_bsz=}')
+                            print(f'[DAPO Filtering] {num_prompt_in_batch=} < {prompt_bsz=}')
                             max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches
                             if max_num_gen_batches <= 0 or num_gen_batches < max_num_gen_batches:
-                                print(f'{num_gen_batches=}. Keep generating...')
+                                print(f'[DAPO Filtering] {num_gen_batches=}. Keep generating...')
                                 continue
                             else:
                                 raise ValueError(
@@ -191,7 +222,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                                 )
                         else:
                             # Align the batch
-                            print(f'{num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
+                            print(f'[DAPO Filtering] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
                             traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
                             batch = batch[:traj_bsz]
 
@@ -199,15 +230,22 @@ class RayDAPOTrainer(RayPPOTrainer):
                     # balance the number of valid tokens on each dp rank.
                     # Note that this breaks the order of data inside the batch.
                     # Please take care when you implement group based adv computation such as GRPO and rloo
+                    if not isinstance(batch, DataProto):
+                        print(f"Batch is not DataProto, converting...")
+                        batch = DataProto(
+                            batch.batch,
+                            batch.non_tensor_batch,
+                            batch.meta_info,
+                        )
                     self._balance_batch(batch, metrics=metrics)
 
                     # compute global_valid tokens
-                    new_batch.meta_info['global_token_num'] = torch.sum(new_batch.batch['attention_mask'], dim=-1).tolist()
+                    batch.meta_info['global_token_num'] = torch.sum(batch.batch['attention_mask'], dim=-1).tolist()
 
                     # batch.batch.apply(lambda x, key: x.long() if key != "old_log_probs" else x, inplace=True, key=True)
-                    for key in batch.batch.keys():
-                        if key != 'old_log_probs':
-                            batch.batch[key] = batch.batch[key].long()
+                    # for key in batch.batch.keys():
+                    #     if key != 'old_log_probs':
+                    #         batch.batch[key] = batch.batch[key].long()
 
                     if self.use_reference_policy:
                         # compute reference log_prob

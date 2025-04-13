@@ -1,9 +1,10 @@
 data_name=nq_hotpotqa_train_summary
 
-export CUDA_VISIBLE_DEVICES=2,3
+export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
+n_gpus_per_node=8
 export DATA_DIR=data/${data_name} # first download the data from https://huggingface.co/datasets/PeterJinGo/nq_hotpotqa_train
 
-export BASE_MODEL="/mnt/finder/shiyr/code/R1/Search-R1/verl_checkpoints/nq_hotpotqa_train-r1-grpo-qwen2.5-3b-it-em-summary-2/actor/best_step_57"
+export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train-r1-grpo-qwen2.5-3b-it-em-summary-2/actor/best_step_167"
 
 # set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
@@ -59,7 +60,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     +trainer.val_only=true \
     +trainer.val_before_train=true \
     trainer.default_hdfs_dir=null \
-    trainer.n_gpus_per_node=2 \
+    trainer.n_gpus_per_node=$n_gpus_per_node \
     trainer.nnodes=1 \
     max_turns=4 \
     retriever.url="http://127.0.0.1:8000/retrieve" \

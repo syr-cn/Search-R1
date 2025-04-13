@@ -181,6 +181,11 @@ def compute_data_metrics(batch, use_critic=True):
     # TODO: add response length
     sequence_score = batch.batch['token_level_scores'].sum(-1)
     sequence_reward = batch.batch['token_level_rewards'].sum(-1)
+    
+    if 'token_level_information_scores' in batch.batch:
+        info_scores = batch.batch['token_level_information_scores'].sum(-1)
+    else:
+        info_scores = None
 
     advantages = batch.batch['advantages']
     returns = batch.batch['returns']
@@ -242,6 +247,11 @@ def compute_data_metrics(batch, use_critic=True):
             # vf explained var
             'critic/vf_explained_var': (1.0 - return_diff_var / (return_var + 1e-5)).detach().item(),
         } if use_critic else {}),
+        **({
+            'critic/info_score/mean': torch.mean(info_scores).detach().item(),
+            'critic/info_score/max': torch.max(info_scores).detach().item(),
+            'critic/info_score/min': torch.min(info_scores).detach().item(),
+        } if (info_scores is not None) else {}),
 
         # response length
         'response_length/mean':

@@ -42,6 +42,7 @@ def pad_batches(batch_list, pad_id):
             'responses_with_info_mask': pad_tensor(batch['responses_with_info_mask'], pad_id, max_N),
             'token_level_rewards': pad_tensor(batch['token_level_rewards'], 0.0, max_N),
             'token_level_scores': pad_tensor(batch['token_level_scores'], 0.0, max_N),
+            'token_level_information_scores': pad_tensor(batch['token_level_information_scores'], 0.0, max_N),
         }
         padded_batches.append(padded)
         padded_batches = [TensorDict(b, batch_size=b['attention_mask'].size(0)) for b in padded_batches]
@@ -157,6 +158,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                         # We first compute the scores using reward model. Then, we call reward_fn to combine
                         # the results from reward model and rule-based results.
                         if self.use_rm:
+                            assert False
                             # we first compute reward model score
                             reward_tensor = self.rm_wg.compute_rm_score(new_batch)
                             new_batch = new_batch.union(reward_tensor)
@@ -164,6 +166,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                         # we combine with rule-based rm
                         reward_tensor = self.reward_fn(new_batch)
                         new_batch.batch['token_level_scores'] = reward_tensor
+                        new_batch.batch['token_level_information_scores'] = self.reward_fn.get_subem(new_batch)
 
                         # compute rewards. apply_kl_penalty if available
                         if not self.config.actor_rollout_ref.actor.use_kl_loss:

@@ -58,6 +58,18 @@ def subem_check(prediction, golden_answers):
             break
     return score
 
+def extract_information(solution_str):
+    """Extract and concatenate information from <information> tags, skipping the first."""
+    info_pattern = r'<information>(.*?)</information>'
+    matches = re.findall(info_pattern, solution_str, re.DOTALL)
+    
+    if len(matches) <= 1:
+        return None
+    
+    # Concatenate from the second match onward
+    combined_info = ' '.join(matches[1:]).strip()
+    return combined_info
+
 
 def extract_solution(solution_str):
     """Extract the equation from the solution string."""
@@ -133,6 +145,34 @@ def compute_score_subem(solution_str, ground_truth, method='strict', format_scor
         return 0
     else:
         if subem_check(answer, ground_truth['target']):
+            return score
+        else:
+            return format_score
+
+
+def compute_information_score_subem(solution_str, ground_truth, method='strict', format_score=0., score=1.):
+    """The scoring function for substring exact match (EM).
+
+    Args:
+        solution_str: the solution text
+        ground_truth: the ground truth
+        method: the method to extract the solution, choices are 'strict' and 'flexible'
+        format_score: the score for the format
+        score: the score for the correct answer
+    """
+    information = extract_information(solution_str=solution_str)
+    do_print = random.randint(1, 64) == 1
+    
+    if do_print:
+        print(f"--------------------------------")
+        print(f"Golden answers: {ground_truth['target']}")
+        print(f"Extracted information: {information}")
+        print(f"Solution string: {solution_str}")
+    
+    if information is None:
+        return 0
+    else:
+        if subem_check(information, ground_truth['target']):
             return score
         else:
             return format_score

@@ -215,10 +215,10 @@ class RayDAPOTrainer(RayPPOTrainer):
 
                         prompt_bsz = self.config.data.train_batch_size
                         if num_prompt_in_batch < prompt_bsz:
-                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} < {prompt_bsz=}')
+                            print(f'[DAPO Filtering {self.config.algorithm.filter_groups.method}/{metric_name}] {num_prompt_in_batch=} < {prompt_bsz=}')
                             max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches
                             if max_num_gen_batches <= 0 or num_gen_batches < max_num_gen_batches:
-                                print(f'[DAPO Filtering {metric_name}] {num_gen_batches=}. Keep generating...')
+                                print(f'[DAPO Filtering {self.config.algorithm.filter_groups.method}/{metric_name}] {num_gen_batches=}. Keep generating...')
                                 continue
                             else:
                                 raise ValueError(
@@ -226,7 +226,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                                 )
                         else:
                             # Align the batch
-                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
+                            print(f'[DAPO Filtering {self.config.algorithm.filter_groups.method}/{metric_name}] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
                             traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
                             batch = batch[:traj_bsz]
                     elif self.config.algorithm.filter_groups.method == 'ours':  # NOTE: When prompts after filtering is less than train batch size, we skip to the next generation batch
@@ -277,10 +277,10 @@ class RayDAPOTrainer(RayPPOTrainer):
 
                         prompt_bsz = self.config.data.train_batch_size
                         if num_prompt_in_batch < prompt_bsz:
-                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} < {prompt_bsz=}')
+                            print(f'[DAPO Filtering {self.config.algorithm.filter_groups.method}/{metric_name}] {num_prompt_in_batch=} < {prompt_bsz=}')
                             max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches
                             if max_num_gen_batches <= 0 or num_gen_batches < max_num_gen_batches:
-                                print(f'[DAPO Filtering {metric_name}] {num_gen_batches=}. Keep generating...')
+                                print(f'[DAPO Filtering {self.config.algorithm.filter_groups.method}/{metric_name}] {num_gen_batches=}. Keep generating...')
                                 continue
                             else:
                                 raise ValueError(
@@ -288,7 +288,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                                 )
                         else:
                             # Align the batch
-                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
+                            print(f'[DAPO Filtering {self.config.algorithm.filter_groups.method}/{metric_name}] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
                             traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
                             batch = batch[:traj_bsz]
                     else:

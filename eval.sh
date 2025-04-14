@@ -1,16 +1,16 @@
-data_name=nq_hotpotqa_train_summary
+data_name=nq_hotpotqa_train_base
 
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
-n_gpus_per_node=8
+num_gpus=8
 export DATA_DIR=data/${data_name} # first download the data from https://huggingface.co/datasets/PeterJinGo/nq_hotpotqa_train
 
-export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train-r1-grpo-qwen2.5-3b-it-em-summary-2/actor/best_step_167"
+export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train-r1-grpo-qwen2.5-3b-it-em-dapo/actor/best_step_77"
 
 # set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
 
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
-export EXPERIMENT_NAME="eval-r1-grpo-qwen2.5-3b-it-em-summary-2"
+export EXPERIMENT_NAME="eval-r1-grpo-qwen2.5-3b-it-em-dapo"
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.train_files=$DATA_DIR/train.parquet \
@@ -60,7 +60,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     +trainer.val_only=true \
     +trainer.val_before_train=true \
     trainer.default_hdfs_dir=null \
-    trainer.n_gpus_per_node=$n_gpus_per_node \
+    trainer.n_gpus_per_node=$num_gpus \
     trainer.nnodes=1 \
     max_turns=4 \
     retriever.url="http://127.0.0.1:8000/retrieve" \

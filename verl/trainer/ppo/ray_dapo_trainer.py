@@ -8,6 +8,7 @@ from copy import deepcopy
 from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
+import random
 import torch
 
 from verl import DataProto
@@ -179,7 +180,7 @@ class RayDAPOTrainer(RayPPOTrainer):
 
                     if not self.config.algorithm.filter_groups.enable:
                         batch = new_batch
-                    else:  # NOTE: When prompts after filtering is less than train batch size, we skip to the next generation batch
+                    elif self.config.algorithm.filter_groups.method == 'dapo':  # NOTE: When prompts after filtering is less than train batch size, we skip to the next generation batch
                         metric_name = self.config.algorithm.filter_groups.metric
                         new_batch.non_tensor_batch[metric_name] = new_batch.batch[metric_name].sum(dim=-1).numpy()
                         # new_batch.non_tensor_batch[metric_name] = new_batch.batch['token_level_scores'].sum(dim=-1).numpy()
@@ -214,10 +215,10 @@ class RayDAPOTrainer(RayPPOTrainer):
 
                         prompt_bsz = self.config.data.train_batch_size
                         if num_prompt_in_batch < prompt_bsz:
-                            print(f'[DAPO Filtering] {num_prompt_in_batch=} < {prompt_bsz=}')
+                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} < {prompt_bsz=}')
                             max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches
                             if max_num_gen_batches <= 0 or num_gen_batches < max_num_gen_batches:
-                                print(f'[DAPO Filtering] {num_gen_batches=}. Keep generating...')
+                                print(f'[DAPO Filtering {metric_name}] {num_gen_batches=}. Keep generating...')
                                 continue
                             else:
                                 raise ValueError(
@@ -225,9 +226,73 @@ class RayDAPOTrainer(RayPPOTrainer):
                                 )
                         else:
                             # Align the batch
-                            print(f'[DAPO Filtering] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
+                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
                             traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
                             batch = batch[:traj_bsz]
+                    elif self.config.algorithm.filter_groups.method == 'ours':  # NOTE: When prompts after filtering is less than train batch size, we skip to the next generation batch
+                        metric_name = self.config.algorithm.filter_groups.metric
+                        new_batch.non_tensor_batch[metric_name] = new_batch.batch[metric_name].sum(dim=-1).numpy()
+                        # new_batch.non_tensor_batch[metric_name] = new_batch.batch['token_level_scores'].sum(dim=-1).numpy()
+
+                        # Collect the sequence reward for each trajectory
+                        bad_sample_ratio = min(1.0*(self.global_steps/100), 1.0)
+                        mean_threshold = 0.3
+                        prompt_uid2metric_vals = defaultdict(list)
+                        for uid, metric_val in zip(new_batch.non_tensor_batch['uid'],
+                                                   new_batch.non_tensor_batch[metric_name]):
+                            prompt_uid2metric_vals[uid].append(metric_val)
+
+                        prompt_uid2metric_std = {}
+                        for prompt_uid, metric_vals in prompt_uid2metric_vals.items():
+                            prompt_uid2metric_std[prompt_uid] = np.std(metric_vals)
+                        
+                        prompt_uid2metric_mean = {}
+                        for prompt_uid, metric_vals in prompt_uid2metric_vals.items():
+                            prompt_uid2metric_mean[prompt_uid] = np.mean(metric_vals)
+                        
+                        good_uids = [uid for uid, mean in prompt_uid2metric_mean.items() if mean > mean_threshold]
+                        bad_uids = [uid for uid, mean in prompt_uid2metric_mean.items() if mean <= mean_threshold]
+
+                        num_allowed_bad_samples = int(bad_sample_ratio * self.config.data.train_batch_size)
+                        selected_bad_uids = random.sample(bad_uids, min(len(bad_uids), num_allowed_bad_samples))
+                        selected_uids = good_uids + selected_bad_uids
+
+                        kept_prompt_uids = [
+                            uid for uid, std in prompt_uid2metric_std.items()
+                            if uid in selected_uids
+                        ]
+                        num_prompt_in_batch += len(kept_prompt_uids)
+
+                        kept_traj_idxs = []
+                        for idx, traj_from_prompt_uid in enumerate(new_batch.non_tensor_batch['uid']):
+                            if traj_from_prompt_uid in kept_prompt_uids:
+                                kept_traj_idxs.append(idx)
+
+                        new_batch = new_batch[kept_traj_idxs]
+                        if batch is None:
+                            batch = new_batch
+                        else:
+                            batch.batch, new_batch.batch = pad_batches([batch.batch, new_batch.batch], pad_id=self.tokenizer.pad_token_id)
+                            batch = DataProto.concat([batch, new_batch])
+
+                        prompt_bsz = self.config.data.train_batch_size
+                        if num_prompt_in_batch < prompt_bsz:
+                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} < {prompt_bsz=}')
+                            max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches
+                            if max_num_gen_batches <= 0 or num_gen_batches < max_num_gen_batches:
+                                print(f'[DAPO Filtering {metric_name}] {num_gen_batches=}. Keep generating...')
+                                continue
+                            else:
+                                raise ValueError(
+                                    f'{num_gen_batches=} >= {max_num_gen_batches=}. Generated too many. Please check your data.'
+                                )
+                        else:
+                            # Align the batch
+                            print(f'[DAPO Filtering {metric_name}] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')
+                            traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
+                            batch = batch[:traj_bsz]
+                    else:
+                        raise NotImplementedError(f"Filter method {self.config.algorithm.filter_groups.method} not supported.")
 
                     assert batch is not None, "Batch should not be None after filtering."
                     # balance the number of valid tokens on each dp rank.

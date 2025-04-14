@@ -1,14 +1,20 @@
 data_name=nq_hotpotqa_train
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export CUDA_VISIBLE_DEVICES="2,3,4,5,6,7"
+num_gpus=6
+export CUDA_VISIBLE_DEVICES="4,5,6,7"
+num_gpus=4
 export DATA_DIR=data/${data_name} # first download the data from https://huggingface.co/datasets/PeterJinGo/nq_hotpotqa_train
 
+wandb_token="8c63841d0875e4fde65a42fb47b52e6a18b8a1ed"
+WANDB_MODE=online
+export WANDB_API_KEY=$wandb_token
 WAND_PROJECT="Search-R1"
 
-export BASE_MODEL='meta-llama/Llama-3.2-3B'
-export EXPERIMENT_NAME=${data_name}-search-r1-grpo-llama3.2-3b-em
-# export BASE_MODEL='meta-llama/Llama-3.2-3B-Instruct'
-# export EXPERIMENT_NAME=${data_name}-search-r1-grpo-llama3.2-3b-it-em
+# export BASE_MODEL='meta-llama/Llama-3.2-3B'
+# export EXPERIMENT_NAME=${data_name}-search-r1-grpo-llama3.2-3b-em
+export BASE_MODEL='meta-llama/Llama-3.2-3B-Instruct'
+export EXPERIMENT_NAME=${data_name}-search-r1-grpo-llama3.2-3b-it-em
 # export BASE_MODEL='meta-llama/Llama-3.1-8B'
 # export EXPERIMENT_NAME=${data_name}-search-r1-grpo-llama3.1-8b-em
 # export BASE_MODEL='meta-llama/Llama-3.1-8B-Instruct'
@@ -57,7 +63,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.6 \
     actor_rollout_ref.ref.log_prob_micro_batch_size=128 \
-    actor_rollout_ref.ref.fsdp_config.param_offload=True \
+    actor_rollout_ref.ref.fsdp_config.param_offload=true \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     algorithm.no_think_rl=false \
@@ -68,9 +74,9 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     +trainer.val_only=false \
     +trainer.val_before_train=true \
     trainer.default_hdfs_dir=null \
-    trainer.n_gpus_per_node=8 \
+    trainer.n_gpus_per_node=$num_gpus \
     trainer.nnodes=1 \
-    trainer.save_freq=100 \
+    trainer.save_freq=50 \
     trainer.test_freq=50 \
     trainer.project_name=$WAND_PROJECT \
     trainer.experiment_name=$EXPERIMENT_NAME \
@@ -81,4 +87,4 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     max_turns=4 \
     retriever.url="http://127.0.0.1:8000/retrieve" \
     retriever.topk=3 \
-    2>&1 | tee $EXPERIMENT_NAME.log
+    2>&1 | tee log/$EXPERIMENT_NAME.log

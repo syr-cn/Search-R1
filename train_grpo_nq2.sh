@@ -2,6 +2,8 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
 export CUDA_VISIBLE_DEVICES="2,3,4,5,6,7"
 num_gpus=6
+export CUDA_VISIBLE_DEVICES="4,5,6,7"
+num_gpus=4
 export DATA_DIR='data/nq_search_summary'
 
 wandb_token="8c63841d0875e4fde65a42fb47b52e6a18b8a1ed"

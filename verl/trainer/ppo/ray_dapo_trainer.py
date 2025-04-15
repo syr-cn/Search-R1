@@ -63,7 +63,9 @@ class RayDAPOTrainer(RayPPOTrainer):
         # currently, we only support validation using the reward_function.
         if self.val_reward_fn is not None and self.config.trainer.get('val_before_train', True):
             val_metrics = self._validate()
-            pprint(f'Initial validation metrics: {val_metrics}')
+            pprint(f'Initial validation metrics:')
+            for key, val in val_metrics.items():
+                print(f'{key}: {val}')
             logger.log(data=val_metrics, step=self.global_steps)
             if self.config.trainer.get('val_only', False):
                 return
@@ -235,8 +237,10 @@ class RayDAPOTrainer(RayPPOTrainer):
                         # new_batch.non_tensor_batch[metric_name] = new_batch.batch['token_level_scores'].sum(dim=-1).numpy()
 
                         # Collect the sequence reward for each trajectory
-                        bad_sample_ratio = min(1.0*(self.global_steps/100), 1.0)
-                        mean_threshold = 0.3
+                        # bad_sample_ratio = min(1.0*(self.global_steps/100), 1.0)
+                        bad_sample_ratio = 0
+                        min_threshold = 0.1
+                        max_threshold = 0.8
                         prompt_uid2metric_vals = defaultdict(list)
                         for uid, metric_val in zip(new_batch.non_tensor_batch['uid'],
                                                    new_batch.non_tensor_batch[metric_name]):
@@ -250,11 +254,17 @@ class RayDAPOTrainer(RayPPOTrainer):
                         for prompt_uid, metric_vals in prompt_uid2metric_vals.items():
                             prompt_uid2metric_mean[prompt_uid] = np.mean(metric_vals)
                         
-                        good_uids = [uid for uid, mean in prompt_uid2metric_mean.items() if mean > mean_threshold]
-                        bad_uids = [uid for uid, mean in prompt_uid2metric_mean.items() if mean <= mean_threshold]
+                        print(f'[min_threshold] {min_threshold=}')
+                        print(f'[max_threshold] {max_threshold=}')
+                        print(f'[bad_sample_ratio] {bad_sample_ratio=}')
+                        good_uids = [uid for uid, mean in prompt_uid2metric_mean.items() if (mean >= min_threshold and mean <= max_threshold)]
+                        bad_uids = [uid for uid, mean in prompt_uid2metric_mean.items() if uid not in good_uids]
 
-                        num_allowed_bad_samples = int(bad_sample_ratio * self.config.data.train_batch_size)
-                        selected_bad_uids = random.sample(bad_uids, min(len(bad_uids), num_allowed_bad_samples))
+                        if bad_sample_ratio > 0:
+                            num_allowed_bad_samples = int(bad_sample_ratio * self.config.data.train_batch_size)
+                            selected_bad_uids = random.sample(bad_uids, min(len(bad_uids), num_allowed_bad_samples))
+                        else:
+                            selected_bad_uids = []
                         selected_uids = good_uids + selected_bad_uids
 
                         kept_prompt_uids = [
@@ -286,6 +296,8 @@ class RayDAPOTrainer(RayPPOTrainer):
                                 raise ValueError(
                                     f'{num_gen_batches=} >= {max_num_gen_batches=}. Generated too many. Please check your data.'
                                 )
+                        elif num_prompt_in_batch == prompt_bsz:
+                            batch = batch
                         else:
                             # Align the batch
                             print(f'[DAPO Filtering {self.config.algorithm.filter_groups.method}/{metric_name}] {num_prompt_in_batch=} >= {prompt_bsz=}. Stop generating.')

@@ -431,7 +431,7 @@ class RayPPOTrainer(object):
 
         self.val_dataloader = DataLoader(dataset=self.val_dataset,
                                          batch_size=self.config.data.val_batch_size,
-                                         shuffle=False,
+                                         shuffle=True,
                                          drop_last=True,
                                          collate_fn=collate_fn)
 
@@ -563,8 +563,12 @@ class RayPPOTrainer(object):
             data_source_reward[data_source].append(reward_tensor[i].item())
 
         metric_dict = {}
+        mean_metrics = 0
         for data_source, rewards in data_source_reward.items():
             metric_dict[f'val/test_score/{data_source}'] = np.mean(rewards)
+            mean_metrics += np.mean(rewards)
+        mean_metrics = mean_metrics / len(data_source_reward)
+        metric_dict[f'val/test_score/mean'] = mean_metrics
 
         return metric_dict
 

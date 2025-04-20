@@ -172,7 +172,7 @@ def compute_information_score_subem(solution_str, ground_truth, method='strict',
     if information is None:
         return 0.0
     elif 'no' in ground_truth['target'] or 'yes' in ground_truth['target']:
-        return 1.0
+        return 0.5
     else:
         if subem_check(information, ground_truth['target']):
             return score

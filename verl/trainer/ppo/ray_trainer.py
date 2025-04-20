@@ -679,6 +679,25 @@ class RayPPOTrainer(object):
 
         assert not self.use_critic
 
+    def _save_checkpoint_best_val(self):
+        # Remove old best models
+        best_models_dir = os.path.join(self.config.trainer.default_local_dir, 'actor')
+        if os.path.exists(best_models_dir):
+            for item in os.listdir(best_models_dir):
+                if item.startswith('best_val_step_'):
+                    item_path = os.path.join(best_models_dir, item)
+                    if os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+
+        # Save new best model
+        actor_local_path = os.path.join(self.config.trainer.default_local_dir, 'actor',
+                                        f'best_val_step_{self.global_steps}')
+        actor_remote_path = None if self.config.trainer.default_hdfs_dir is None else os.path.join(
+            self.config.trainer.default_hdfs_dir, 'actor')
+        self.actor_rollout_wg.save_checkpoint(actor_local_path, actor_remote_path)
+
+        assert not self.use_critic
+
     def _balance_batch(self, batch: DataProto, metrics, logging_prefix='global_seqlen'):
         """Reorder the data on single controller such that each dp rank gets similar total tokens"""
         attention_mask = batch.batch['attention_mask']
@@ -709,7 +728,9 @@ class RayPPOTrainer(object):
         # currently, we only support validation using the reward_function.
         if self.val_reward_fn is not None and self.config.trainer.get('val_before_train', True):
             val_metrics = self._validate()
-            pprint(f'Initial validation metrics: {val_metrics}')
+            pprint(f'Initial validation metrics:')
+            for key, val in val_metrics.items():
+                print(f'{key}: {val}')
             logger.log(data=val_metrics, step=self.global_steps)
             if self.config.trainer.get('val_only', False):
                 return

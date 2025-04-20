@@ -7,7 +7,8 @@
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
 # export DATA_DIR='data/nq_hotpotqa_train'
-export DATA_DIR='data/nq_hotpotqa_train_base'
+export DATA_DIR='data/nq_hotpotqa_train_summary'
+export HF_ENDPOINT=https://hf-mirror.com
 
 wandb_token="8c63841d0875e4fde65a42fb47b52e6a18b8a1ed"
 WANDB_MODE="online"
@@ -25,8 +26,8 @@ WAND_PROJECT='Search-R1'
 
 # export BASE_MODEL='Qwen/Qwen2.5-3B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-3b-em
-export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
-export EXPERIMENT_NAME="nq_hotpotqa_train-r1-grpo-qwen2.5-3b-it-em-ours"
+export BASE_MODEL='verl_checkpoints/nq_hotpotqa_train_summary-r1-grpo-qwen2.5-3b-it-em-ours_v2/actor/best_val_step_120'
+export EXPERIMENT_NAME="nq_hotpotqa_train_summary-r1-grpo-qwen2.5-3b-it-em-ours_v2-continue"
 # export BASE_MODEL='Qwen/Qwen2.5-7B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'
@@ -39,7 +40,7 @@ export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has som
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.train_files=$DATA_DIR/train.parquet \
-    data.val_files=$DATA_DIR/valid.parquet \
+    data.val_files=$DATA_DIR/valid_500.parquet \
     data.train_data_num=null \
     data.val_data_num=null \
     data.train_batch_size=512 \
@@ -52,7 +53,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     algorithm.filter_groups.enable=true \
     algorithm.filter_groups.method=ours \
-    algorithm.filter_groups.metric="token_level_information_scores" \
+    algorithm.filter_groups.metric="token_level_scores" \
     algorithm.filter_groups.max_num_gen_batches=10 \
     actor_rollout_ref.model.path=$BASE_MODEL \
     actor_rollout_ref.model.enable_gradient_checkpointing=true \
@@ -74,7 +75,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     algorithm.no_think_rl=false \
-    actor_rollout_ref.rollout.n_agent=8 \
+    actor_rollout_ref.rollout.n_agent=5 \
     actor_rollout_ref.rollout.temperature=1 \
     actor_rollout_ref.actor.state_masking=true \
     trainer.logger=['wandb'] \

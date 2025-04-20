@@ -25,8 +25,8 @@ WAND_PROJECT='Search-R1'
 
 # export BASE_MODEL='Qwen/Qwen2.5-3B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-3b-em
-export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
-export EXPERIMENT_NAME="nq_hotpotqa_train_base-r1-grpo-qwen2.5-3b-it-em-dapo"
+export BASE_MODEL='verl_checkpoints/nq_hotpotqa_train_base-r1-grpo-qwen2.5-3b-it-em-dapo/actor/global_step_200'
+export EXPERIMENT_NAME="nq_hotpotqa_train_base-r1-grpo-qwen2.5-3b-it-em-dapo-continue"
 # export BASE_MODEL='Qwen/Qwen2.5-7B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'

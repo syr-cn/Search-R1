@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--template_type', type=str, default='base')
     parser.add_argument('--data_sources', default='nq')
     parser.add_argument('--filename', default='test')
-    parser.add_argument('--make_subset', action='store_true', default=False)
+    parser.add_argument('--n_subset', type=int, default=0, help='number of samples to subset')
 
     args = parser.parse_args()
 
@@ -55,10 +55,9 @@ if __name__ == '__main__':
             print(f'Using the {data_source} train dataset...')
             test_dataset = dataset['train']
         
-        n_subset = 1000
-        if args.make_subset and len(test_dataset) > n_subset:
-            print(f'Randomly sampling {n_subset} samples from {data_source} test dataset...')
-            test_dataset = test_dataset.shuffle(seed=42).select(range(n_subset))
+        if args.n_subset > 0 and len(test_dataset) > args.n_subset:
+            print(f'Randomly sampling {args.n_subset} samples from {data_source} test dataset...')
+            test_dataset = test_dataset.shuffle(seed=42).select(range(args.n_subset))
 
         # add a row to each data item that represents a unique id
         def make_map_fn(split):

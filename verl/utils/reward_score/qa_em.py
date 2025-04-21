@@ -161,7 +161,7 @@ def compute_information_score_subem(solution_str, ground_truth, method='strict',
         score: the score for the correct answer
     """
     information = extract_information(solution_str=solution_str)
-    do_print = random.randint(1, 64) == 1
+    do_print = random.randint(1, 256) == 1
     
     if do_print:
         print(f"--------------------------------")

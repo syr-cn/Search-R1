@@ -195,13 +195,12 @@ if __name__ == '__main__':
         with open(cache_file_path, 'w') as f:
             json.dump(cache_data, f)
     
-    # sort the dataset by subem_score, high to low
-    all_dataset = sorted(all_dataset, key=lambda x: x['subem_score'], reverse=True)
 
     local_dir = args.local_dir
     hdfs_dir = args.hdfs_dir
 
     all_train_dataset = datasets.concatenate_datasets(all_dataset)
+    all_train_dataset = all_train_dataset.sort('subem_score', reverse=True)
     all_train_dataset.to_parquet(os.path.join(local_dir, 'train_sort.parquet'))
 
     assert hdfs_dir is None

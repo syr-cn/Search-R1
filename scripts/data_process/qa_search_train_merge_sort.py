@@ -75,7 +75,7 @@ def subem_check(prediction, golden_answers):
 
 def split_documents(text):
     # Find all the split points
-    split_points = [m.start() for m in re.finditer(r'Doc \d+\(Title: \"Donald Trump\"\)', text)]
+    split_points = [m.start() for m in re.finditer(r'Doc \d+\(Title: .*?\)', text)]
     
     docs = []
     for i in range(len(split_points)):
@@ -103,7 +103,7 @@ def subem_score(doc_str, golden_answers):
 def search(query: str):
     payload = {
             "queries": [query],
-            "topk": 3,
+            "topk": 5,
             "return_scores": True
         }
     results = requests.post("http://127.0.0.1:8000/retrieve", json=payload).json()['result']

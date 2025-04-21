@@ -203,4 +203,12 @@ if __name__ == '__main__':
     all_train_dataset = all_train_dataset.sort('subem_score', reverse=True)
     all_train_dataset.to_parquet(os.path.join(local_dir, 'train_sort.parquet'))
 
+    sorted_scores=[]
+    for i in range(1000):
+        sorted_scores.append(all_train_dataset[int(i*len(all_train_dataset)/1000)]['subem_score'])
+    print(sorted_scores)
+    with open(os.path.join(local_dir, 'train_sort.txt'), 'w') as f:
+        for score in sorted_scores:
+            f.write(f'{score}\n')
+
     assert hdfs_dir is None

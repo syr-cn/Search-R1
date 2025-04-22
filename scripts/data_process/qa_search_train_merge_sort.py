@@ -201,6 +201,7 @@ if __name__ == '__main__':
 
     all_train_dataset = datasets.concatenate_datasets(all_dataset)
     all_train_dataset = all_train_dataset.sort('subem_score', reverse=True)
+    all_train_dataset = all_train_dataset.filter(lambda example: example['subem_score'] != 0)
     all_train_dataset.to_parquet(os.path.join(local_dir, 'train_sort.parquet'))
 
     sorted_scores=[]

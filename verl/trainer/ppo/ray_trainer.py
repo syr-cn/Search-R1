@@ -759,6 +759,7 @@ class RayPPOTrainer(object):
 
         # start training loop
         self.best_reward = float('-inf')
+        self.best_val = 0.0
         for epoch in range(self.config.trainer.total_epochs):
             for batch_dict in self.train_dataloader:
                 print(f'epoch {epoch}, step {self.global_steps}')
@@ -911,6 +912,12 @@ class RayPPOTrainer(object):
                     with _timer('save_best_checkpoint', timing_raw):
                         self._save_checkpoint_best()
                     self.best_reward = max(self.best_reward, metrics['critic/rewards/mean'])
+
+                if 'val/test_score/mean' in metrics and metrics['val/test_score/mean'] > self.best_val:
+                    with _timer('save_best_checkpoint', timing_raw):
+                        self._save_checkpoint_best_val()
+                    self.best_val = max(self.best_val, metrics['val/test_score/mean'])
+
                 # TODO: make a canonical logger that supports various backend
                 logger.log(data=metrics, step=self.global_steps)
 

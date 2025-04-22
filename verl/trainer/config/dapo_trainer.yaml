@@ -156,8 +156,8 @@ algorithm:
     type: fixed
     kl_coef: 0.001
   state_masking:
-    start_state_marker: "<information>"
-    end_state_marker: "</information>"
+    start_state_marker: "<documents>"
+    end_state_marker: "</documents>"
   filter_groups:
     enable: False # We try to avoid forgetting to set enable
     method: "dapo"

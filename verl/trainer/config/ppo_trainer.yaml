@@ -156,8 +156,8 @@ algorithm:
     type: fixed
     kl_coef: 0.001
   state_masking:
-    start_state_marker: "<information>"
-    end_state_marker: "</information>"
+    start_state_marker: "<documents>"
+    end_state_marker: "</documents>"
 
 trainer:
   total_epochs: 30

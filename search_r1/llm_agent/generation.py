@@ -388,7 +388,7 @@ class LLMGenerationManager:
                     valid_action.append(1)
                     is_search.append(0)
                 elif action == 'search':
-                    next_obs.append(f'\n\n<information>{search_results.pop(0).strip()}</information>\n\n')
+                    next_obs.append(f'\n\n<documents>{search_results.pop(0).strip()}</documents>\n\n')
                     dones.append(0)
                     valid_action.append(1)
                     is_search.append(1)

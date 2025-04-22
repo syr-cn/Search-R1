@@ -93,17 +93,18 @@ def subem_score(doc_str, golden_answers):
     doc_list = split_documents(doc_str)
     if 'no' in golden_answers or 'yes' in golden_answers:
         return random.random()
+    score = 0.0
     for idx, doc in enumerate(doc_list):
         if subem_check(doc, golden_answers):
-            return 1 / (idx+1)
-    return 0.0
+            score += 1 / (idx+1)
+    return score
 
 #####
 
 def search(query: str):
     payload = {
             "queries": [query],
-            "topk": 5,
+            "topk": 3,
             "return_scores": True
         }
     results = requests.post("http://127.0.0.1:8000/retrieve", json=payload).json()['result']

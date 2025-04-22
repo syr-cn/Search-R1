@@ -59,8 +59,8 @@ def subem_check(prediction, golden_answers):
     return score
 
 def extract_information(solution_str):
-    """Extract and concatenate information from <information> tags, skipping the first."""
-    info_pattern = r'<information>(.*?)</information>'
+    """Extract and concatenate information from <documents> tags, skipping the first."""
+    info_pattern = r'<documents>(.*?)</documents>'
     matches = re.findall(info_pattern, solution_str, re.DOTALL)
     
     if len(matches) <= 1:

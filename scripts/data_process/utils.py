@@ -7,15 +7,15 @@ def make_prefix(dp, template_type):
         """This works for any base model"""
         prefix = f"""Answer the given question. \
 You must conduct reasoning inside <think> and </think> first every time you get new information. \
-After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <information> and </information>. \
+After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <documents> and </documents>. \
 You can search as many times as your want. \
 If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> Beijing </answer>. Question: {question}\n"""
     elif template_type == 'summary':
         """This works for any base model"""
         prefix = f"""Answer the given question. \
 You must conduct reasoning inside <think> and </think> first every time you get new information. \
-After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <information> and </information>. \
-After each search, you need to summarize all the existing information in <summary> and </summary>. \
+After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <documents> and </documents>. \
+After each search, you need to summarize and refine the existing documents in <refine> and </refine>. \
 You can search as many times as your want. \
 If you find no further external knowledge needed, you can directly provide the answer inside <answer> and </answer>, without detailed illustrations. For example, <answer> Beijing </answer>. Question: {question}\n"""
     else:

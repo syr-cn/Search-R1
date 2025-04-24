@@ -186,6 +186,11 @@ def compute_data_metrics(batch, use_critic=True):
         info_scores = batch.batch['token_level_information_scores'].sum(-1)
     else:
         info_scores = None
+    
+    if 'token_level_refine_scores' in batch.batch:
+        refine_scores = batch.batch['token_level_refine_scores'].sum(-1)
+    else:
+        refine_scores = None
 
     advantages = batch.batch['advantages']
     returns = batch.batch['returns']
@@ -252,6 +257,11 @@ def compute_data_metrics(batch, use_critic=True):
             'critic/info_score/max': torch.max(info_scores).detach().item(),
             'critic/info_score/min': torch.min(info_scores).detach().item(),
         } if (info_scores is not None) else {}),
+        **({
+            'critic/refine_score/mean': torch.mean(refine_scores).detach().item(),
+            'critic/refine_score/max': torch.max(refine_scores).detach().item(),
+            'critic/refine_score/min': torch.min(refine_scores).detach().item(),
+        } if (refine_scores is not None) else {}),
 
         # response length
         'response_length/mean':
@@ -848,6 +858,7 @@ class RayPPOTrainer(object):
                         # We first compute the scores using reward model. Then, we call reward_fn to combine
                         # the results from reward model and rule-based results.
                         if self.use_rm:
+                            assert NotImplementedError
                             # we first compute reward model score
                             reward_tensor = self.rm_wg.compute_rm_score(batch)
                             batch = batch.union(reward_tensor)
@@ -855,6 +866,12 @@ class RayPPOTrainer(object):
                         # we combine with rule-based rm
                         reward_tensor = self.reward_fn(batch)
                         batch.batch['token_level_scores'] = reward_tensor
+                        batch.batch['token_level_information_scores'] = self.reward_fn.get_subem(batch)
+
+                        refine_reward_tensor = self.reward_fn.get_refine_subem(batch)
+                        batch.batch['token_level_refine_scores'] = self.reward_fn.get_refine_subem(batch)
+                        if self.config.actor_rollout_ref.actor.refine_lambda > 0:
+                            reward_tensor += self.config.actor_rollout_ref.actor.refine_lambda * refine_reward_tensor
 
                         # compute rewards. apply_kl_penalty if available
                         if not self.config.actor_rollout_ref.actor.use_kl_loss:

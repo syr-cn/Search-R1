@@ -99,6 +99,22 @@ def subem_score(doc_str, golden_answers):
             score += 1 / (idx+1)
     return score
 
+
+def subem_score_2(doc_str, golden_answers):
+    if isinstance(golden_answers, str):
+        golden_answers = [golden_answers]
+    doc_list = split_documents(doc_str)
+    score = 0.0
+    if 'no' in golden_answers or 'yes' in golden_answers:
+        score += 1 - 1/len(doc_list) + random.random() / len(doc_list)
+    else:
+        for idx, doc in enumerate(doc_list):
+            if subem_check(doc, golden_answers):
+                score += 1 - idx / len(doc_list)
+    if score > 0:
+        score += random.random() / len(doc_list)
+    return score
+
 #####
 
 def search(query: str):
@@ -169,7 +185,7 @@ if __name__ == '__main__':
                     if random.randint(0, 100) ==0: # save every 100 times
                         with open(cache_file_path, 'w') as f:
                             json.dump(cache_data, f)
-                score = subem_score(doc_str, example['golden_answers'])
+                score = subem_score_2(doc_str, example['golden_answers'])
                 data = {
                     "data_source": data_source,
                     "prompt": [{

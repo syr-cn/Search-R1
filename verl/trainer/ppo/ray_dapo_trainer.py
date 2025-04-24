@@ -172,6 +172,11 @@ class RayDAPOTrainer(RayPPOTrainer):
                         new_batch.batch['token_level_scores'] = reward_tensor
                         new_batch.batch['token_level_information_scores'] = self.reward_fn.get_subem(new_batch)
 
+                        refine_reward_tensor = self.reward_fn.get_refine_subem(batch)
+                        batch.batch['token_level_refine_scores'] = self.reward_fn.get_refine_subem(batch)
+                        if self.config.actor_rollout_ref.actor.refine_lambda > 0:
+                            reward_tensor += self.config.actor_rollout_ref.actor.refine_lambda * refine_reward_tensor
+
                         # compute rewards. apply_kl_penalty if available
                         if not self.config.actor_rollout_ref.actor.use_kl_loss:
                             new_batch, kl_metrics = apply_kl_penalty(new_batch,

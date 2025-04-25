@@ -64,8 +64,10 @@ class RayDAPOTrainer(RayPPOTrainer):
         if self.val_reward_fn is not None and self.config.trainer.get('val_before_train', True):
             val_metrics = self._validate()
             pprint(f'Initial validation metrics:')
-            for key, val in val_metrics.items():
-                print(f'{key}: {val}')
+            for key in ['nq', 'triviaqa', 'popqa', 'hotpotqa', '2wikimultihopqa', 'musique', 'bamboogle', 'mean']:
+                val_key = f'val/test_score/{key}'
+                val = val_metrics.get(val_key, None)
+                print(f'{val_key}: {val}')
             logger.log(data=val_metrics, step=self.global_steps)
             if self.config.trainer.get('val_only', False):
                 return

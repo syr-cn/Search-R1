@@ -7,7 +7,8 @@
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
 # export DATA_DIR='data/nq_hotpotqa_train'
-export DATA_DIR='data/nq_hotpotqa_train_summary_sort5'
+export DATA_DIR='data/nq_hotpotqa_train_refine_sort3_filter_v2'
+export DATA_DIR='data/nq_hotpotqa_train_refine'
 export HF_ENDPOINT=https://hf-mirror.com
 
 wandb_token="8c63841d0875e4fde65a42fb47b52e6a18b8a1ed"
@@ -27,7 +28,7 @@ WAND_PROJECT='Search-R1'
 # export BASE_MODEL='Qwen/Qwen2.5-3B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-3b-em
 export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
-export EXPERIMENT_NAME="nq_hotpotqa_train_summary_sort5-r1-grpo-qwen2.5-3b-it-em"
+export EXPERIMENT_NAME="nq_hotpotqa_train_refine-r1-grpo-qwen2.5-3b-it-em"
 # export BASE_MODEL='Qwen/Qwen2.5-7B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'
@@ -37,9 +38,10 @@ export EXPERIMENT_NAME="nq_hotpotqa_train_summary_sort5-r1-grpo-qwen2.5-3b-it-em
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
 
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
+# 4096 >= (2048 + 500 * (2 - 1) + 500 * 2)
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
-    data.train_files=$DATA_DIR/train_sort.parquet \
+    data.train_files=$DATA_DIR/train.parquet \
     data.val_files=$DATA_DIR/valid_500.parquet \
     data.train_data_num=null \
     data.val_data_num=null \
@@ -49,7 +51,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.max_response_length=500 \
     data.max_start_length=2048 \
     data.max_obs_length=500 \
-    data.shuffle_train_dataloader=false \
+    data.shuffle_train_dataloader=true \
     algorithm.adv_estimator=grpo \
     algorithm.filter_groups.enable=false \
     algorithm.filter_groups.method=dapo \
@@ -58,6 +60,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.model.path=$BASE_MODEL \
     actor_rollout_ref.model.enable_gradient_checkpointing=true \
     actor_rollout_ref.model.use_remove_padding=True \
+    actor_rollout_ref.actor.refine_lambda=-1 \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.95 \
     actor_rollout_ref.actor.use_kl_loss=true \

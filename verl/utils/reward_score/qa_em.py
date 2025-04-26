@@ -105,7 +105,7 @@ def extract_solution(solution_str):
     return matches[-1].group(1).strip()
 
 
-def compute_score_em(solution_str, ground_truth, method='strict', format_score=0., score=1.):
+def compute_score_em(solution_str, ground_truth, method='strict', format_score=0., score=1., refine_score=0.0):
     """The scoring function for exact match (EM).
 
     Args:
@@ -129,6 +129,9 @@ def compute_score_em(solution_str, ground_truth, method='strict', format_score=0
     else:
         if em_check(answer, ground_truth['target']):
             return score
+        elif refine_score > 0:
+            refine_score_subem = compute_refine_score_subem(solution_str, ground_truth, method=method, format_score=format_score, score=score)
+            return refine_score * refine_score_subem
         else:
             return format_score
 

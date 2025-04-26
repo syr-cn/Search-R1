@@ -64,14 +64,11 @@ def subem_check(prediction, golden_answers):
     if isinstance(golden_answers, str):
         golden_answers = [golden_answers]
     normalized_prediction = normalize_answer(prediction)
-    score = 0
     for golden_answer in golden_answers:
         golden_answer = normalize_answer(golden_answer)
         if golden_answer in normalized_prediction:
-            score = 1
-            break
-    return score
-
+            return 1
+    return 0
 
 def split_documents(text):
     # Find all the split points
@@ -114,6 +111,31 @@ def subem_score_2(doc_str, golden_answers):
     if score > 0:
         score += random.random() / len(doc_list)
     return score
+
+def subem_score_3(str_question, doc_str, golden_answers):
+    if isinstance(golden_answers, str):
+        golden_answers = [golden_answers]
+    doc_list = split_documents(doc_str)
+    score = 0.0
+
+    if 'no' in golden_answers or 'yes' in golden_answers:
+        score += 1 - 1/len(doc_list)
+    else:
+        if subem_check(str_question, golden_answers):
+            score += 1.0
+        for idx, doc in enumerate(doc_list):
+            if subem_check(doc, golden_answers):
+                score += 1 - idx / len(doc_list)
+    if score > 0:
+        score += random.random() / len(doc_list)
+    return score
+
+def compute_filter_score(str_question, doc_str, golden_answers):
+    subem_score = subem_score_3(str_question, doc_str, golden_answers)
+    if subem_score > 1:
+        return random.choice([2, 4, 6, 8, 10])
+    else:
+        return random.choice([1, 3, 5, 7, 9])
 
 #####
 
@@ -185,14 +207,14 @@ if __name__ == '__main__':
                     if random.randint(0, 100) ==0: # save every 100 times
                         with open(cache_file_path, 'w') as f:
                             json.dump(cache_data, f)
-                score = subem_score_2(doc_str, example['golden_answers'])
+                filter_score = compute_filter_score(str_question, doc_str, example['golden_answers'])
                 data = {
                     "data_source": data_source,
                     "prompt": [{
                         "role": "user",
                         "content": question,
                     }],
-                    "subem_score": score,
+                    "filter_score": filter_score,
                     "ability": "fact-reasoning",
                     "reward_model": {
                         "style": "rule",
@@ -217,13 +239,13 @@ if __name__ == '__main__':
     hdfs_dir = args.hdfs_dir
 
     all_train_dataset = datasets.concatenate_datasets(all_dataset)
-    all_train_dataset = all_train_dataset.sort('subem_score', reverse=True)
-    all_train_dataset = all_train_dataset.filter(lambda example: example['subem_score'] != 0)
-    all_train_dataset.to_parquet(os.path.join(local_dir, 'train_sort.parquet'))
+    all_train_dataset = all_train_dataset.sort('filter_score', reverse=True)
+    # all_train_dataset = all_train_dataset.filter(lambda example: example['filter_score'] != 0)
+    all_train_dataset.to_parquet(os.path.join(local_dir, 'train.parquet'))
 
     sorted_scores=[]
     for i in range(1000):
-        sorted_scores.append(all_train_dataset[int(i*len(all_train_dataset)/1000)]['subem_score'])
+        sorted_scores.append(all_train_dataset[int(i*len(all_train_dataset)/1000)]['filter_score'])
     print(sorted_scores)
     with open(os.path.join(local_dir, 'train_sort.txt'), 'w') as f:
         for score in sorted_scores:

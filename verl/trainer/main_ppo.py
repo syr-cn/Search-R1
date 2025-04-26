@@ -35,10 +35,11 @@ class RewardManager():
     """The reward manager.
     """
 
-    def __init__(self, tokenizer, num_examine, format_score=0., log_path=None) -> None:
+    def __init__(self, tokenizer, num_examine, format_score=0., refine_score=0., log_path=None) -> None:
         self.tokenizer = tokenizer
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
         self.format_score = format_score
+        self.refine_score = refine_score
         self.log_path = log_path
 
     def get_refine_subem(self, data: DataProto):
@@ -136,7 +137,7 @@ class RewardManager():
             data_source = data_item.non_tensor_batch['data_source']
             compute_score_fn = _select_rm_score_fn(data_source)
 
-            score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score)
+            score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score, refine_score=self.refine_score)
 
             reward_tensor[i, valid_response_length - 1] = score
             # all_scores.append(score)
@@ -252,11 +253,12 @@ def main_task(config):
         mapping[Role.RewardModel] = global_pool_id
 
     train_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/train/{config.trainer.experiment_name}.jsonl'
-    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0, log_path=train_log_jsonl)
+    refine_score = config.actor_rollout_ref.actor.refine_score
+    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0, log_path=train_log_jsonl, refine_score=refine_score)
 
     # Note that we always use function-based RM for validation
     val_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/val/{config.trainer.experiment_name}.jsonl'
-    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1, log_path=val_log_jsonl)
+    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1, log_path=val_log_jsonl, refine_score=refine_score)
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
     if config.algorithm.filter_groups.enable:

@@ -133,9 +133,9 @@ def subem_score_3(str_question, doc_str, golden_answers):
 def compute_filter_score(str_question, doc_str, golden_answers):
     subem_score = subem_score_3(str_question, doc_str, golden_answers)
     if subem_score > 1:
-        return random.choice([2, 4, 6, 8, 10])
+        return random.choice([2, 4, 6])
     else:
-        return random.choice([1, 3, 5, 7, 9])
+        return random.choice([1, 3, 5])
 
 #####
 

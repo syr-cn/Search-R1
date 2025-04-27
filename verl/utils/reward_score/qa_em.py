@@ -130,8 +130,8 @@ def compute_score_em(solution_str, ground_truth, method='strict', format_score=0
         if em_check(answer, ground_truth['target']):
             return score
         elif refine_score > 0:
-            refine_score_subem = compute_refine_score_subem(solution_str, ground_truth, method=method, format_score=format_score, score=score)
-            return refine_score * refine_score_subem
+            refine_score_subem = compute_refine_score_subem(solution_str, ground_truth, method=method, format_score=format_score, score=refine_score)
+            return refine_score_subem
         else:
             return format_score
 

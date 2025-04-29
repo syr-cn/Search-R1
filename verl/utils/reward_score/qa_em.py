@@ -70,6 +70,16 @@ def extract_information(solution_str):
     combined_info = ' '.join(matches[1:]).strip()
     return combined_info
 
+def extract_information_list(solution_str):
+    """Extract and concatenate information from <documents> tags, skipping the first."""
+    info_pattern = r'<documents>(.*?)</documents>'
+    matches = re.findall(info_pattern, solution_str, re.DOTALL)
+    
+    if len(matches) <= 1:
+        return None
+    matches = matches[1:]
+    return matches
+
 def extract_refine(solution_str):
     info_pattern = r'<refine>(.*?)</refine>'
     matches = re.findall(info_pattern, solution_str, re.DOTALL)
@@ -186,6 +196,28 @@ def compute_information_score_subem(solution_str, ground_truth, method='strict',
         else:
             return format_score
 
+
+def compute_information_reverse_rank(solution_str, ground_truth, method='strict', format_score=0., score=1.):
+    """The scoring function for substring exact match (EM).
+
+    Args:
+        solution_str: the solution text
+        ground_truth: the ground truth
+        method: the method to extract the solution, choices are 'strict' and 'flexible'
+        format_score: the score for the format
+        score: the score for the correct answer
+    """
+    doc_list = extract_information_list(solution_str=solution_str)
+    
+    if doc_list is None:
+        return 0.0
+    elif 'no' in ground_truth['target'] or 'yes' in ground_truth['target']:
+        return 0.5
+    else:
+        for idx, doc in enumerate(doc_list):
+            if subem_check(doc, ground_truth['target']):
+                return score / float(idx + 1)
+    return format_score
 
 def compute_refine_score_subem(solution_str, ground_truth, method='strict', format_score=0., score=1.):
     """The scoring function for substring exact match (EM).

@@ -187,6 +187,11 @@ def compute_data_metrics(batch, use_critic=True):
     else:
         info_scores = None
     
+    if 'token_level_information_reverse_rank' in batch.batch:
+        reverse_rank_scores = batch.batch['token_level_information_reverse_rank'].sum(-1)
+    else:
+        reverse_rank_scores = None
+    
     if 'token_level_answer_scores' in batch.batch:
         answer_scores = batch.batch['token_level_answer_scores'].sum(-1)
     else:
@@ -272,6 +277,11 @@ def compute_data_metrics(batch, use_critic=True):
             'critic/answer_scores/max': torch.max(answer_scores).detach().item(),
             'critic/answer_scores/min': torch.min(answer_scores).detach().item(),
         } if (answer_scores is not None) else {}),
+        **({
+            'critic/reverse_rank_scores/mean': torch.mean(reverse_rank_scores).detach().item(),
+            'critic/reverse_rank_scores/max': torch.max(reverse_rank_scores).detach().item(),
+            'critic/reverse_rank_scores/min': torch.min(reverse_rank_scores).detach().item(),
+        } if (reverse_rank_scores is not None) else {}),
 
         # response length
         'response_length/mean':
@@ -308,6 +318,36 @@ def compute_data_metrics(batch, use_critic=True):
 
 
     return metrics
+
+def compute_difficulty_metrics(batch):
+    if 'difficulty_score' in batch.non_tensor_batch:
+        difficulty_scores = batch.non_tensor_batch['difficulty_score']
+    else:
+        print('[Difficulty Score] Difficulty score not found in batch')
+        difficulty_scores = np.zeros_like(batch.non_tensor_batch['id'])
+    print('[Difficulty Score] Mean difficulty score:', difficulty_scores.mean())
+
+    easy_index = difficulty_scores > 1.0
+    hard_index = difficulty_scores < 1.0
+    easy_batch = batch[easy_index]
+    hard_batch = batch[hard_index]
+
+    easy_metrics = compute_data_metrics(easy_batch, use_critic=False) if len(easy_batch) > 0 else {}
+    hard_metrics = compute_data_metrics(hard_batch, use_critic=False) if len(hard_batch) > 0 else {}
+    difficulty_metrics = {}
+    for key, value in easy_metrics.items():
+        if not '/mean' in key:
+            continue
+        if (not 'critic' in key) and (not 'env' in key):
+            continue
+        difficulty_metrics['easy/' + key] = value
+    for key, value in hard_metrics.items():
+        if not '/mean' in key:
+            continue
+        if (not 'critic' in key) and (not 'env' in key) and (not '_valid_' in key):
+            continue
+        difficulty_metrics['hard/' + key] = value
+    return difficulty_metrics
 
 def compute_throughout_metrics(batch: DataProto, timing_raw: Dict[str, float], n_gpus: int) -> Dict[str, float]:
     total_num_tokens = sum(batch.meta_info["global_token_num"])
@@ -880,6 +920,7 @@ class RayPPOTrainer(object):
                         batch.batch['token_level_scores'] = reward_tensor
                         batch.batch['token_level_information_scores'] = self.reward_fn.get_subem(batch)
                         batch.batch['token_level_answer_scores'] = self.reward_fn.get_answer_em(batch)
+                        batch.batch['token_level_information_reverse_rank'] = self.reward_fn.get_reverse_rank(batch)
 
                         refine_reward_tensor = self.reward_fn.get_refine_subem(batch)
                         batch.batch['token_level_refine_scores'] = refine_reward_tensor
@@ -933,6 +974,7 @@ class RayPPOTrainer(object):
 
                 # collect metrics
                 metrics.update(compute_data_metrics(batch=batch, use_critic=self.use_critic))
+                metrics.update(compute_difficulty_metrics(batch=batch))
                 metrics.update(compute_timing_metrics(batch=batch, timing_raw=timing_raw))
                 
                 n_gpus = self.config.trainer.n_gpus_per_node

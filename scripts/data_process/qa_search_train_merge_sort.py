@@ -173,7 +173,7 @@ if __name__ == '__main__':
     # data_source = 'nq'
     data_sources = args.data_sources.split(',')
     all_dataset = []
-    cache_file_path = os.path.join(args.local_dir, f'search.json')
+    cache_file_path = './data/search.json'
     if not os.path.exists(cache_file_path):
         cache_data = {}
     else:
@@ -255,7 +255,7 @@ if __name__ == '__main__':
             filter_score = subsampled_dataset[i]['filter_score']
             f.write(f'{difficulty_score} {filter_score}\n')
 
-    all_train_dataset = all_train_dataset.filter(lambda example: example['filter_score'] != 0)
+    # all_train_dataset = all_train_dataset.filter(lambda example: example['filter_score'] != 0)
     all_train_dataset.to_parquet(os.path.join(local_dir, 'train.parquet'))
 
     assert hdfs_dir is None

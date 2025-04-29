@@ -130,12 +130,13 @@ def subem_score_3(str_question, doc_str, golden_answers):
         score += random.random() / len(doc_list)
     return score
 
-def compute_filter_score(str_question, doc_str, golden_answers):
-    subem_score = subem_score_3(str_question, doc_str, golden_answers)
+def compute_filter_score(subem_score):
     if subem_score > 1:
-        return random.choice([2, 4, 6])
+        # easy samples
+        return random.choices([1, 2, 3], weights=[10, 2, 3], k=1)[0]
     else:
-        return random.choice([1, 3, 5])
+        # hard samples
+        return random.choices([0, 1, 2], weights=[4, 10, 1], k=1)[0]
 
 #####
 
@@ -207,7 +208,8 @@ if __name__ == '__main__':
                     if random.randint(0, 100) ==0: # save every 100 times
                         with open(cache_file_path, 'w') as f:
                             json.dump(cache_data, f)
-                filter_score = compute_filter_score(str_question, doc_str, example['golden_answers'])
+                difficulty_score = subem_score_3(str_question, doc_str, example['golden_answers'])
+                filter_score = compute_filter_score(difficulty_score)
                 data = {
                     "data_source": data_source,
                     "prompt": [{
@@ -215,6 +217,7 @@ if __name__ == '__main__':
                         "content": question,
                     }],
                     "filter_score": filter_score,
+                    "difficulty_score": difficulty_score,
                     "ability": "fact-reasoning",
                     "reward_model": {
                         "style": "rule",
@@ -239,16 +242,20 @@ if __name__ == '__main__':
     hdfs_dir = args.hdfs_dir
 
     all_train_dataset = datasets.concatenate_datasets(all_dataset)
+    all_train_dataset = all_train_dataset.shuffle(seed=42)
     all_train_dataset = all_train_dataset.sort('filter_score', reverse=True)
-    # all_train_dataset = all_train_dataset.filter(lambda example: example['filter_score'] != 0)
-    all_train_dataset.to_parquet(os.path.join(local_dir, 'train.parquet'))
 
-    sorted_scores=[]
-    for i in range(1000):
-        sorted_scores.append(all_train_dataset[int(i*len(all_train_dataset)/1000)]['filter_score'])
-    print(sorted_scores)
+    subset_size = 5000
+    sampling_indices = [int(i * len(all_train_dataset) / subset_size) for i in range(subset_size)]
+    subsampled_dataset = all_train_dataset.select(sampling_indices)
+    subsampled_dataset.to_parquet(os.path.join(local_dir, 'train_5k.parquet'))
     with open(os.path.join(local_dir, 'train_sort.txt'), 'w') as f:
-        for score in sorted_scores:
-            f.write(f'{score}\n')
+        for i in range(subset_size):
+            difficulty_score = subsampled_dataset[i]['difficulty_score']
+            filter_score = subsampled_dataset[i]['filter_score']
+            f.write(f'{difficulty_score} {filter_score}\n')
+
+    all_train_dataset = all_train_dataset.filter(lambda example: example['filter_score'] != 0)
+    all_train_dataset.to_parquet(os.path.join(local_dir, 'train.parquet'))
 
     assert hdfs_dir is None

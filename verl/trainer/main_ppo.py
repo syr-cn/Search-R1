@@ -283,11 +283,11 @@ def main_task(config):
 
     train_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/train/{config.trainer.experiment_name}.jsonl'
     refine_score = config.actor_rollout_ref.actor.refine_score
-    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0, log_path=train_log_jsonl, refine_score=refine_score)
+    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.train_num_examine, log_path=train_log_jsonl, refine_score=refine_score)
 
     # Note that we always use function-based RM for validation
     val_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/val/{config.trainer.experiment_name}.jsonl'
-    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=1, log_path=val_log_jsonl, refine_score=refine_score)
+    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.val_num_examine, log_path=val_log_jsonl, refine_score=refine_score)
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
     if config.algorithm.filter_groups.enable:

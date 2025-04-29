@@ -44,6 +44,8 @@ def pad_batches(batch_list, pad_id):
             'token_level_rewards': pad_tensor(batch['token_level_rewards'], 0.0, max_N),
             'token_level_scores': pad_tensor(batch['token_level_scores'], 0.0, max_N),
             'token_level_information_scores': pad_tensor(batch['token_level_information_scores'], 0.0, max_N),
+            'token_level_refine_scores': pad_tensor(batch['token_level_refine_scores'], 0.0, max_N),
+            'token_level_answer_em': pad_tensor(batch['token_level_answer_em'], 0.0, max_N),
         }
         padded_batches.append(padded)
         padded_batches = [TensorDict(b, batch_size=b['attention_mask'].size(0)) for b in padded_batches]
@@ -173,6 +175,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                         reward_tensor = self.reward_fn(new_batch)
                         new_batch.batch['token_level_scores'] = reward_tensor
                         new_batch.batch['token_level_information_scores'] = self.reward_fn.get_subem(new_batch)
+                        new_batch.batch['token_level_answer_em'] = self.reward_fn.get_em(batch)
 
                         refine_reward_tensor = self.reward_fn.get_refine_subem(batch)
                         batch.batch['token_level_refine_scores'] = self.reward_fn.get_refine_subem(batch)

@@ -187,6 +187,11 @@ def compute_data_metrics(batch, use_critic=True):
     else:
         info_scores = None
     
+    if 'token_level_answer_scores' in batch.batch:
+        answer_scores = batch.batch['token_level_answer_scores'].sum(-1)
+    else:
+        answer_scores = None
+    
     if 'token_level_refine_scores' in batch.batch:
         refine_scores = batch.batch['token_level_refine_scores'].sum(-1)
     else:
@@ -262,6 +267,11 @@ def compute_data_metrics(batch, use_critic=True):
             'critic/refine_score/max': torch.max(refine_scores).detach().item(),
             'critic/refine_score/min': torch.min(refine_scores).detach().item(),
         } if (refine_scores is not None) else {}),
+        **({
+            'critic/answer_scores/mean': torch.mean(answer_scores).detach().item(),
+            'critic/answer_scores/max': torch.max(answer_scores).detach().item(),
+            'critic/answer_scores/min': torch.min(answer_scores).detach().item(),
+        } if (answer_scores is not None) else {}),
 
         # response length
         'response_length/mean':
@@ -869,9 +879,10 @@ class RayPPOTrainer(object):
                         reward_tensor = self.reward_fn(batch)
                         batch.batch['token_level_scores'] = reward_tensor
                         batch.batch['token_level_information_scores'] = self.reward_fn.get_subem(batch)
+                        batch.batch['token_level_answer_scores'] = self.reward_fn.get_answer_em(batch)
 
                         refine_reward_tensor = self.reward_fn.get_refine_subem(batch)
-                        batch.batch['token_level_refine_scores'] = self.reward_fn.get_refine_subem(batch)
+                        batch.batch['token_level_refine_scores'] = refine_reward_tensor
                         if self.config.actor_rollout_ref.actor.refine_lambda > 0:
                             reward_tensor += self.config.actor_rollout_ref.actor.refine_lambda * refine_reward_tensor
 

@@ -1,5 +1,5 @@
 WORK_DIR="/mnt/finder/shiyr/code/R1/Search-R1"
-LOCAL_DIR=$WORK_DIR/data/nq_hotpotqa_train_refine_sort3_filter
+LOCAL_DIR=$WORK_DIR/data/nq_hotpotqa_train_refine_sort3_easy_start
 template_type="refine"
 export HF_ENDPOINT=https://hf-mirror.com
 mkdir -p $LOCAL_DIR

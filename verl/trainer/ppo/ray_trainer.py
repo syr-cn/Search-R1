@@ -329,8 +329,8 @@ def compute_difficulty_metrics(batch):
 
     easy_index = difficulty_scores > 1.0
     hard_index = difficulty_scores < 1.0
-    easy_batch = batch[easy_index]
-    hard_batch = batch[hard_index]
+    easy_batch = batch[easy_index].to('cpu')
+    hard_batch = batch[hard_index].to('cpu')
 
     easy_metrics = compute_data_metrics(easy_batch, use_critic=False) if len(easy_batch) > 0 else {}
     hard_metrics = compute_data_metrics(hard_batch, use_critic=False) if len(hard_batch) > 0 else {}

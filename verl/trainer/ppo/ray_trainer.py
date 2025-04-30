@@ -328,7 +328,7 @@ def compute_difficulty_metrics(batch):
     print('[Difficulty Score] Mean difficulty score:', difficulty_scores.mean())
 
     easy_index = difficulty_scores > 1.0
-    hard_index = difficulty_scores < 1.0
+    hard_index = difficulty_scores <= 1.0
     easy_batch = batch[easy_index].to('cpu')
     hard_batch = batch[hard_index].to('cpu')
 
@@ -336,15 +336,15 @@ def compute_difficulty_metrics(batch):
     hard_metrics = compute_data_metrics(hard_batch, use_critic=False) if len(hard_batch) > 0 else {}
     difficulty_metrics = {}
     for key, value in easy_metrics.items():
-        if not '/mean' in key:
+        if (not '/mean' in key) and (not '_valid_' in key):
             continue
         if (not 'critic' in key) and (not 'env' in key):
             continue
         difficulty_metrics['easy/' + key] = value
     for key, value in hard_metrics.items():
-        if not '/mean' in key:
+        if (not '/mean' in key) and (not '_valid_' in key):
             continue
-        if (not 'critic' in key) and (not 'env' in key) and (not '_valid_' in key):
+        if (not 'critic' in key) and (not 'env' in key):
             continue
         difficulty_metrics['hard/' + key] = value
     return difficulty_metrics
@@ -572,7 +572,7 @@ class RayPPOTrainer(object):
 
                 # evaluate using reward_function
                 # for certain reward function (e.g. sandbox), the generation can overlap with reward
-                reward_tensor = self.val_reward_fn(test_batch)
+                reward_tensor = self.val_reward_fn.get_answer_em(test_batch)
 
                 reward_tensor_lst.append(reward_tensor)
                 data_source_lst.append(test_batch.non_tensor_batch.get('data_source', ['unknown'] * reward_tensor.shape[0]))
@@ -606,7 +606,7 @@ class RayPPOTrainer(object):
                     
                     # evaluate using reward_function
                     # for certain reward function (e.g. sandbox), the generation can overlap with reward
-                    reward_tensor = self.val_reward_fn(test_batch)
+                    reward_tensor = self.val_reward_fn.get_answer_em(test_batch)
 
                     reward_tensor_lst.append(reward_tensor)
                     data_source_lst.append(test_batch.non_tensor_batch.get('data_source', ['unknown'] * reward_tensor.shape[0]))

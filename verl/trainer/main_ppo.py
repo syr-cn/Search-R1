@@ -30,6 +30,12 @@ def _select_rm_score_fn(data_source):
     else:
         raise NotImplementedError
 
+def keep_through_last_refine(text: str) -> str:
+    token = "</refine>"
+    pos = text.rfind(token)
+    if pos == -1:
+        return text
+    return text[:pos + len(token)]
 
 class RewardManager():
     """The reward manager.
@@ -62,13 +68,18 @@ class RewardManager():
             # decode
             sequences = torch.cat((valid_prompt_ids, valid_response_ids))
             sequences_str = self.tokenizer.decode(sequences)
+            response_str = self.tokenizer.decode(valid_response_ids)
+
+            sequences_before_refine_str = keep_through_last_refine(response_str)
+            sequences_before_refine_ids = self.tokenizer(sequences_before_refine_str, return_tensors='pt', add_special_tokens=False).input_ids[0]
+            refine_length = len(sequences_before_refine_ids)
 
             ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
             compute_score_fn = qa_em.compute_refine_score_subem
 
-            score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score)
+            score = compute_score_fn(solution_str=response_str, ground_truth=ground_truth, format_score=self.format_score)
 
-            reward_tensor[i, valid_response_length - 1] = score
+            reward_tensor[i, refine_length - 1] = score
         return reward_tensor
 
     def get_answer_em(self, data: DataProto):

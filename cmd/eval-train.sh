@@ -1,20 +1,21 @@
-data_name=nq_hotpotqa_train_refine
+data_name=nq_hotpotqa_train_refine_score
 
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
 export DATA_DIR=data/${data_name} # first download the data from https://huggingface.co/datasets/PeterJinGo/nq_hotpotqa_train
 
-export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_refine_sort3_easy_start-r1-grpo-qwen2.5-3b-em/actor/best_val_step_200"
+topk=3
 
 # set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
 
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
-export EXPERIMENT_NAME="eval-refine_easy_start-r1-grpo-qwen2.5-3b-em-step_200"
+export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_refine_sort3_easy_start-r1-grpo-qwen2.5-3b-em/actor/best_val_step_200"
+export EXPERIMENT_NAME="eval-ours-r1-grpo-qwen2.5-3b-em-train5k"
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.train_files=$DATA_DIR/train.parquet \
-    data.val_files=$DATA_DIR/test.parquet \
+    data.val_files=$DATA_DIR/train_5k.parquet \
     data.train_data_num=null \
     data.val_data_num=null \
     data.train_batch_size=512 \
@@ -65,5 +66,5 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     trainer.nnodes=1 \
     max_turns=2 \
     retriever.url="http://127.0.0.1:8000/retrieve" \
-    retriever.topk=3 \
+    retriever.topk=$topk \
     2>&1 | tee log/$EXPERIMENT_NAME.log

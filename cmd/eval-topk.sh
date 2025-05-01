@@ -62,6 +62,8 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     trainer.logger=[] \
     +trainer.val_only=true \
     +trainer.val_before_train=true \
+    trainer.experiment_name=$EXPERIMENT_NAME \
+    reward_model.val_num_examine 1000000 \
     trainer.default_hdfs_dir=null \
     trainer.n_gpus_per_node=$num_gpus \
     trainer.nnodes=1 \

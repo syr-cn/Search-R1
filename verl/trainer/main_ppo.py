@@ -85,6 +85,8 @@ class RewardManager():
     def get_answer_em(self, data: DataProto):
         reward_tensor = torch.zeros_like(data.batch['responses'], dtype=torch.float32)
 
+        already_print_data_sources = {}
+
         for i in range(len(data)):
             data_item = data[i]  # DataProtoItem
 
@@ -104,11 +106,30 @@ class RewardManager():
             sequences_str = self.tokenizer.decode(sequences)
 
             ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
+            data_source = data_item.non_tensor_batch['data_source']
             compute_score_fn = qa_em.compute_score_em
 
             score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score, refine_score=0.0)
 
             reward_tensor[i, valid_response_length - 1] = score
+
+            if data_source not in already_print_data_sources:
+                already_print_data_sources[data_source] = 0
+
+            if already_print_data_sources[data_source] < self.num_examine:
+                already_print_data_sources[data_source] += 1
+                if already_print_data_sources[data_source] ==1:
+                    print(sequences_str)
+                if self.log_path is not None:
+                    assert self.log_path.endswith('.jsonl')
+                    log_info = {
+                        'data_source': data_source,
+                        'ground_truth': ground_truth['target'].tolist()[0],
+                        'response': sequences_str,
+                        'score': score
+                    }
+                    with open(self.log_path, 'a+') as f:
+                        f.write(json.dumps(log_info) + '\n')
         return reward_tensor
 
     def get_subem(self, data: DataProto):
@@ -216,7 +237,8 @@ class RewardManager():
 
             if already_print_data_sources[data_source] < self.num_examine:
                 already_print_data_sources[data_source] += 1
-                print(sequences_str)
+                if already_print_data_sources[data_source] ==1:
+                    print(sequences_str)
                 if self.log_path is not None:
                     assert self.log_path.endswith('.jsonl')
                     log_info = {
@@ -327,7 +349,7 @@ def main_task(config):
 
     # Note that we always use function-based RM for validation
     val_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/val/{config.trainer.experiment_name}.jsonl'
-    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.val_num_examine, log_path=val_log_jsonl, refine_score=refine_score)
+    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.val_num_examine, log_path=val_log_jsonl)
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
     if config.algorithm.filter_groups.enable:

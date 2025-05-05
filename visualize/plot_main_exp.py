@@ -4,22 +4,22 @@ import seaborn as sns
 from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 
-line_palette = sns.color_palette("Set2", n_colors=2)
+line_palette = sns.color_palette("husl", n_colors=2)
 
 # Step 1: Read the two CSV files
 csv_names = [
+    'visualize/wandb/searchr1-base_2.csv',
     'visualize/wandb/ours-base.csv',
-    'visualize/wandb/ours-instruct.csv',
-    'visualize/wandb/searchr1-base_2.csv',
-    'visualize/wandb/searchr1-base_2.csv',
+    # 'visualize/wandb/ours-instruct.csv',
+    # 'visualize/wandb/searchr1-base_2.csv',
     # 'visualize/wandb/ours-base-no_reward.csv',
 ]
 exp_dfs = [pd.read_csv(csv_name) for csv_name in csv_names]
 exp_names = [
-    'AutoReThink-Base',
-    'AutoReThink-Instruct',
     'Search-R1-Base',
-    'Search-R1-Instruct',
+    'AutoReThink-Base',
+    # 'AutoReThink-Instruct',
+    # 'Search-R1-Instruct',
 ]
 
 # metric = "critic/rewards/mean"
@@ -38,11 +38,11 @@ selected_columns = [
 y_labels = ['Reward'] + ['Accuracy'] * 5
 col_names = [
     "(a) Training Rewards",
-    "(b) Average Val Accuracy",
-    "(c) Val Accuracy on HotpotQA",
-    "(d) Val Accuracy on Musique",
-    "(e) Val Accuracy on Bamboogle",
-    "(f) Val Accuracy on 2Wiki",
+    "(b) Average Accuracy",
+    "(c) Accuracy on HotpotQA",
+    "(d) Accuracy on Musique",
+    "(e) Accuracy on Bamboogle",
+    "(f) Accuracy on 2Wiki",
 ]
 
 max_y = [.5, .5, .5, .2, .3, .5]
@@ -58,11 +58,9 @@ for i in range(len(selected_columns)):
     # axes[i].plot(exp_dfs[1][col], label=exp_names[1], alpha=0.7)
     marker = '^' if i!=0 else None
     l1, = axes[i].plot(exp_dfs[0][col][:201].dropna(), label=exp_names[0], alpha=1, color=line_palette[0], marker=marker, linestyle='-', linewidth=2)
-    l2, = axes[i].plot(exp_dfs[1][col][:201].dropna(), label=exp_names[1], alpha=1, color=line_palette[0], marker=marker, linestyle='--', linewidth=2)
-    l3, = axes[i].plot(exp_dfs[2][col][:201].dropna(), label=exp_names[2], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2)
-    l4, = axes[i].plot(exp_dfs[3][col][:201].dropna(), label=exp_names[3], alpha=1, color=line_palette[1], marker=marker, linestyle='--', linewidth=2)
+    l2, = axes[i].plot(exp_dfs[1][col][:201].dropna(), label=exp_names[1], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2)
     if i == 0:
-        lines = [l1, l2, l3, l4]
+        lines = [l1, l2]
         labels = exp_names
 
     # axes[i].set_title(f'Comparison of {col_name}')
@@ -75,7 +73,7 @@ for i in range(len(selected_columns)):
     axes[i].yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     axes[i].grid(True)
 
-fig.legend(lines, labels, loc='lower center', ncol=4)
+fig.legend(handles=[l1, l2], loc='lower center', ncol=2)
 plt.tight_layout()
 plt.subplots_adjust(bottom=0.13)
 plt.savefig('visualize/figures/curve_main_exp.pdf', bbox_inches='tight', dpi=300)

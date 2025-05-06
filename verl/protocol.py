@@ -430,7 +430,7 @@ class DataProto:
         for key, val in self.non_tensor_batch.items():
             selected_non_tensor[key] = val[idxs_np]
 
-        return DataProto(batch=selected_batch, non_tensor_batch=selected_non_tensor, meta_info=self.meta_info)
+        return DataProto(batch=selected_batch, non_tensor_batch=selected_non_tensor, meta_info=copy.deepcopy(self.meta_info))
 
     def slice(self, start=None, end=None, step=None):
         """

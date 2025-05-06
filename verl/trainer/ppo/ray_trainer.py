@@ -329,8 +329,20 @@ def compute_difficulty_metrics(batch):
 
     easy_index = difficulty_scores > 1.0
     hard_index = difficulty_scores <= 1.0
+
     easy_batch = batch[easy_index].to('cpu')
+    for key in ['turns_stats', 'active_mask', 'valid_action_stats', 'valid_search_stats']:
+        assert key in easy_batch.meta_info, f'Key {key} not found in easy batch. meta_info: {easy_batch.meta_info.keys()}'
+        # easy_batch.meta_info[key] is a list
+        easy_batch.meta_info[key] = [value for flag, value in zip(easy_index, easy_batch.meta_info[key]) if flag]
+        assert len(easy_batch.meta_info[key]) == sum(easy_index), f'Key {key} length mismatch in easy batch, {len(easy_batch.meta_info[key])} vs {sum(easy_index)}'
+    
     hard_batch = batch[hard_index].to('cpu')
+    for key in ['turns_stats', 'active_mask', 'valid_action_stats', 'valid_search_stats']:
+        assert key in hard_batch.meta_info, f'Key {key} not found in hard batch. meta_info: {easy_batch.meta_info.keys()}'
+        # hard_batch.meta_info[key] is a list
+        hard_batch.meta_info[key] = [value for flag, value in zip(hard_index, hard_batch.meta_info[key]) if flag]
+        assert len(hard_batch.meta_info[key]) == sum(hard_index), f'Key {key} length mismatch in hard batch, {len(hard_batch.meta_info[key])} vs {sum(hard_index)}'
 
     easy_metrics = compute_data_metrics(easy_batch, use_critic=False) if len(easy_batch) > 0 else {}
     hard_metrics = compute_data_metrics(hard_batch, use_critic=False) if len(hard_batch) > 0 else {}

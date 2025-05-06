@@ -533,8 +533,21 @@ class RayPPOTrainer(object):
         Accumulates metrics across all batches before computing final statistics.
         """
         import torch
-        reward_tensor_lst = []
+        accuracy_tensor_lst = []
         data_source_lst = []
+        token_level_scores = {
+            'information_scores': [],
+            'information_reverse_rank': [],
+            'refine_scores': [],
+        }
+            # metrics for actions
+        gen_key_map = {
+            'turns_stats': 'number_of_actions',
+            'active_mask': 'finish_ratio',
+            'valid_action_stats': 'number_of_valid_action',
+            'valid_search_stats': 'number_of_valid_search',
+        }
+        medata_dict = {value: [] for value in gen_key_map.values()}
 
         gen_config = GenerationConfig(
             max_turns=self.config.max_turns,
@@ -557,6 +570,7 @@ class RayPPOTrainer(object):
         )
 
         if not self.config.do_search:
+            assert False
             for test_data in self.val_dataloader:
                 test_batch = DataProto.from_single_dict(test_data)
 
@@ -586,7 +600,7 @@ class RayPPOTrainer(object):
                 # for certain reward function (e.g. sandbox), the generation can overlap with reward
                 reward_tensor = self.val_reward_fn.get_answer_em(test_batch)
 
-                reward_tensor_lst.append(reward_tensor)
+                accuracy_tensor_lst.append(reward_tensor)
                 data_source_lst.append(test_batch.non_tensor_batch.get('data_source', ['unknown'] * reward_tensor.shape[0]))
         else:
             for batch_dict in self.val_dataloader:
@@ -619,13 +633,27 @@ class RayPPOTrainer(object):
                     # evaluate using reward_function
                     # for certain reward function (e.g. sandbox), the generation can overlap with reward
                     reward_tensor = self.val_reward_fn.get_answer_em(test_batch)
+                    
+                    token_level_information_scores = self.reward_fn.get_subem(test_batch)
+                    token_level_information_reverse_rank = self.reward_fn.get_reverse_rank(test_batch)
+                    token_level_refine_scores = self.reward_fn.get_refine_subem(test_batch)
+                    token_level_scores['information_scores'].append(token_level_information_scores)
+                    token_level_scores['information_reverse_rank'].append(token_level_information_reverse_rank)
+                    token_level_scores['refine_scores'].append(token_level_refine_scores)
+                    for key, value in gen_key_map.items():
+                        medata_dict[value].extend(test_batch.meta_info[key])
 
-                    reward_tensor_lst.append(reward_tensor)
+                    accuracy_tensor_lst.append(reward_tensor)
                     data_source_lst.append(test_batch.non_tensor_batch.get('data_source', ['unknown'] * reward_tensor.shape[0]))
 
-        reward_tensor = torch.cat([rw.sum(-1) for rw in reward_tensor_lst], dim=0).cpu()  # (batch_size,)
-        # reward_tensor = torch.cat(reward_tensor_lst, dim=0).sum(-1).cpu()  # (batch_size,)
         data_sources = np.concatenate(data_source_lst, axis=0)
+        reward_tensor = torch.cat([rw.sum(-1) for rw in accuracy_tensor_lst], dim=0).cpu()  # (batch_size,)
+        assert len(reward_tensor) == len(data_sources), f'reward_tensor length mismatch, {len(reward_tensor)} vs {len(data_sources)}'
+        for key in token_level_scores.keys():
+            token_level_scores[key] = torch.cat([rw.sum(-1) for rw in token_level_scores[key]], dim=0).cpu()
+            assert len(token_level_scores[key]) == len(data_sources), f'{key} length mismatch, {len(token_level_scores[key])} vs {len(data_sources)}'
+        for key in medata_dict.keys():
+            assert len(medata_dict[key]) == len(data_sources), f'{key} length mismatch, {len(medata_dict[key])} vs {len(data_sources)}'
         # evaluate test_score based on data source
         data_source_reward = {}
         for i in range(reward_tensor.shape[0]):
@@ -634,6 +662,9 @@ class RayPPOTrainer(object):
                 data_source_reward[data_source] = []
             data_source_reward[data_source].append(reward_tensor[i].item())
 
+        SINGLE_DATA_SOURCES = ['nq', 'popqa', 'triviaqa']
+        MULTI_DATA_SOURCES = ['hotpotqa', '2wikimultihopqa', 'musique', 'bamboogle']
+        ALL_DATA_SOURCES = SINGLE_DATA_SOURCES + MULTI_DATA_SOURCES
         metric_dict = {}
         mean_metrics = 0
         for data_source, rewards in data_source_reward.items():
@@ -641,6 +672,43 @@ class RayPPOTrainer(object):
             mean_metrics += np.mean(rewards)
         mean_metrics = mean_metrics / len(data_source_reward)
         metric_dict[f'val/test_score/mean'] = mean_metrics
+
+        data_source_metrics = {}
+        for i in range(len(data_sources)):
+            data_source = data_sources[i]
+            for key in token_level_scores.keys():
+                if data_source not in data_source_metrics:
+                    data_source_metrics[data_source] = {}
+                if key not in data_source_metrics[data_source]:
+                    data_source_metrics[data_source][key] = []
+                data_source_metrics[data_source][key].append(token_level_scores[key][i].item())
+            for key in medata_dict.keys():
+                if data_source not in data_source_metrics:
+                    data_source_metrics[data_source] = {}
+                if key not in data_source_metrics[data_source]:
+                    data_source_metrics[data_source][key] = []
+                data_source_metrics[data_source][key].append(medata_dict[key][i])
+        extra_metric_dict = {}
+        for data_source, metrics in data_source_metrics.items():
+            for key, values in metrics.items():
+                extra_metric_dict[f'val/{key}/{data_source}'] = np.mean(values)
+
+        metric_dict.update(extra_metric_dict)
+
+        metric_readout_dict={}
+        for metric_name in metric_dict.keys():
+            # e.g., root = 'val/test_score/'
+            root = '/'.join(metric_name.split('/')[:-1])
+            root_single = f'{root}/single'
+            root_multi = f'{root}/multi'
+            root_mean = f'{root}/mean'
+            if root_mean not in metric_readout_dict:
+                metric_readout_dict[root_mean] = np.mean([metric_dict[f'{root}/{data_source}'] for data_source in ALL_DATA_SOURCES])
+            if root_single not in metric_readout_dict:
+                metric_readout_dict[root_single] = np.mean([metric_dict[f'{root}/{data_source}'] for data_source in SINGLE_DATA_SOURCES])
+            if root_multi not in metric_readout_dict:
+                metric_readout_dict[root_multi] = np.mean([metric_dict[f'{root}/{data_source}'] for data_source in MULTI_DATA_SOURCES])
+        metric_dict.update(metric_readout_dict)
 
         return metric_dict
 

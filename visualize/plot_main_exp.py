@@ -38,8 +38,8 @@ selected_columns = [
 exp_dfs[1][selected_columns[0]] = exp_dfs[2][selected_columns[0]]
 y_labels = ['Reward'] + ['Accuracy'] * 5
 col_names = [
-    "(a) Training Rewards",
-    "(b) Average Accuracy",
+    "(a) Training Accuracy",
+    "(b) Validation Accuracy",
     "(c) Accuracy on HotpotQA †",
     "(d) Accuracy on Musique ‡",
     "(e) Accuracy on Bamboogle ‡",

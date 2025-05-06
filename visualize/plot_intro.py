@@ -18,6 +18,7 @@ csv_names = [
     'visualize/wandb/searchr1-base_2.csv',
     'visualize/wandb/ours-base-wScore.csv',
     'visualize/wandb/ours-base.csv',
+    # 'visualize/wandb/ours-instruct-wScore.csv',
 ]
 line_dfs = [pd.read_csv(csv_name) for csv_name in csv_names]
 col_name = 'env/number_of_valid_search'

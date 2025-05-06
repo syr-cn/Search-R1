@@ -26,19 +26,19 @@ exp_names = [
 ]
 
 selected_columns = [
-    "critic/info_score/mean",
-    "easy/critic/info_score/mean",
-    "hard/critic/info_score/mean",
+    "env/number_of_valid_search",
+    "easy/env/number_of_valid_search",
+    "hard/env/number_of_valid_search",
 ]
 
 exp_dfs[3][selected_columns[0]] = -exp_dfs[2][selected_columns[0]]
 
 
 y_labels = [
-    'Success Rate (%)',
-    'Success Rate (%)',
-    'Success Rate (%)',
-    'Success Rate (%)',
+    'Number of Search Calls',
+    'Number of Search Calls',
+    'Number of Search Calls',
+    'Number of Search Calls',
 ]
 col_names = [
     '(a) Base v.s. Instruct Models',
@@ -47,14 +47,14 @@ col_names = [
     
 max_x = 199
 y_lim = [
-    (15, 78),
-    (15, 78),
-    (0, 102),
-    (0, 52),
+    (0.5, 2.1),
+    (0.5, 2.1),
+    (0.5, 2.1),
+    (0.5, 2.1),
 ]
 y_ticks = [
-    np.arange(20, 80, 10),
-    np.arange(20, 80, 10),
+    np.arange(0.7, 2.1, 0.3),
+    np.arange(0.7, 2.1, 0.3),
 ]
 
 fig, axes = plt.subplots(1, 4, figsize=(16, 3.5))
@@ -64,32 +64,32 @@ idx = 0
 exp_id = [0, 2]
 linestyle = '-'
 col = selected_columns[0]
-l1, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna()*100, label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
-l2, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna()*100, label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
+l1, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna(), label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
+l2, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna(), label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
 
 
 idx = 1
 exp_id = [1, 3]
 linestyle = '--'
 col = selected_columns[0]
-l3, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna()*100, label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
-l4, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna()*100, label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
+l3, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna(), label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
+l4, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna(), label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
 
 
 idx = 2
 exp_id = [0, 2]
 linestyle = '-'
 col = selected_columns[1]
-_, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna()*100, label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
-_, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna()*100, label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
+_, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna(), label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
+_, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna(), label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
 
 
 idx = 3
 exp_id = [0, 2]
 linestyle = '-'
 col = selected_columns[2]
-_, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna()*100, label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
-_, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna()*100, label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
+_, = axes[idx].plot(exp_dfs[exp_id[0]][col][:max_x].dropna(), label=exp_names[exp_id[0]], alpha=1, color=line_palette[1], linestyle=linestyle, linewidth=2, zorder=6)
+_, = axes[idx].plot(exp_dfs[exp_id[1]][col][:max_x].dropna(), label=exp_names[exp_id[1]], alpha=1, color=line_palette[0], linestyle=linestyle, linewidth=2, zorder=5)
 
 
 lines = [l1, l3, l2, l4]
@@ -112,4 +112,4 @@ fig.legend(handles=lines, loc='lower center', ncol=4)
 
 plt.tight_layout()
 plt.subplots_adjust(bottom=0.23, top=0.9)
-plt.savefig('visualize/figures/curve_search_quality.pdf', bbox_inches='tight', dpi=300)
+plt.savefig('visualize/figures/curve_search_frequency.pdf', bbox_inches='tight', dpi=300)

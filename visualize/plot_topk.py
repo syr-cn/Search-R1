@@ -19,7 +19,7 @@ ours = {key: ours_df[key].tolist() for key in ds_names}
 
 # titles = ['(a) Average', '(b) NQ', '(c) HotpotQA', '(d) Musique']
 titles = ['(a) Average', '(b) HotpotQA', '(c) Bamboogle', '(d) Musique']
-labels = ['Search-R1-Base', 'AutoReThink-Base', 'Performance Gain']
+labels = ['Search-R1-Base', 'AutoRefine-Base', 'Performance Gain']
 y_lims = [
     (0, 0.45),
     (0, 0.45),

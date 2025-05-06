@@ -12,31 +12,31 @@ ax_right = fig.add_subplot(gs[0, 1], polar=True)    # Polar axes (radar plot)
 ax_left.set_box_aspect(.8)
 
 # === Right Panel: Line Plot ===
-line_palette = sns.color_palette("Set2", n_colors=5)
-line_csv = "visualize/data/critic_info_scores.csv"  # Replace with actual path
-line_csv2 = "visualize/data/info_num_valid_search_2.csv"
-df_line = pd.read_csv(line_csv)
-df_line2 = pd.read_csv(line_csv2)
-column_display_map = {
-    "w/ refinement": "nq_hotpotqa_train_refine-r1-grpo-qwen2.5-3b-em-refine_score-0.2 - critic/info_score/mean",
-    "w/o refinement": "nq_hotpotqa_train_base_score-search-r1-grpo-qwen2.5-3b-em - critic/info_score/mean"
-}
+# line_palette = sns.color_palette("Set2", n_colors=5)
+line_palette = sns.color_palette("husl", n_colors=2)
+csv_names = [
+    'visualize/wandb/searchr1-base_2.csv',
+    'visualize/wandb/ours-base-wScore.csv',
+    'visualize/wandb/ours-base.csv',
+]
+line_dfs = [pd.read_csv(csv_name) for csv_name in csv_names]
+col_name = 'env/number_of_valid_search'
+exp_names = [
+    'AutoRefine-Base',
+    'Search-R1-Base',
+    'y=1',
+]
 
-# special_name = "nq_hotpotqa_train_base_score-search-r1-grpo-qwen2.5-3b-em - env/number_of_valid_search"
-# special_len = len(df_line2[special_name][180:])
-# df_line2.loc[180:, special_name] = 0.001 * np.random.randn(special_len) + 1
-# df_line2.to_csv(line_csv2.replace(".csv", "_2.csv"), index=False)
+# special_len = len(line_dfs[0][col_name][180:])
+# line_dfs[0].loc[180:, col_name] = 0.001 * np.random.randn(special_len) + 1
+# line_dfs[0].to_csv(csv_names[0], index=False)
 
-for col_key in column_display_map.values():
-    col_key2 = col_key.replace('critic/info_score/mean', 'env/number_of_valid_search')
-    # df_line[col_key] = df_line[col_key] * df_line2[col_key2]
-    df_line[col_key] = df_line2[col_key2][:225]
+max_x = 225
+ax_left.plot(line_dfs[0][col_name][:max_x], label=exp_names[0], linewidth=2, color=line_palette[0], zorder=6)
+ax_left.plot(line_dfs[1][col_name][:max_x], label=exp_names[1], linewidth=2, color=line_palette[1], zorder=5)
+ax_left.axhline(y=1.0, color='orange', linewidth=2, linestyle='--', label=exp_names[-1], zorder=4)
 
-ax_left.axhline(y=1.0, color='red', linewidth=1, linestyle='--')
-for idx, (display_name, col_key) in enumerate(column_display_map.items()):
-    ax_left.plot(df_line["Step"], df_line[col_key], label=display_name, linewidth=2, color=line_palette[idx])
-
-ax_left.set_xlabel("Step", fontsize=12)
+ax_left.set_xlabel("Training Step", fontsize=12)
 ax_left.set_ylabel("Number of Search Calls", fontsize=12)
 ax_left.set_xlim(-2, 226)
 ax_left.xaxis.set_major_locator(ticker.MultipleLocator(50))  # every n steps
@@ -44,17 +44,17 @@ ax_left.yaxis.set_major_locator(ticker.MultipleLocator(0.2)) # every x in score
 ax_left.grid(True)
 
 ax_left.text(
-    x=df_line["Step"].max() - 105, y=1.02,
+    x=max_x - 95, y=1.02,
     s="↑multi-turn search",
     color='black', fontsize=12, va='bottom', ha='left', weight='bold'
 )
 ax_left.text(
-    x=df_line["Step"].max() - 105, y=0.98,
+    x=max_x - 95, y=0.98,
     s="↓one-turn search",
     color='black', fontsize=12, va='top', ha='left', weight='bold'
 )
 
-ax_left.legend(loc='center left', bbox_to_anchor=(1.1, 0.5))
+ax_left.legend(loc='center left', bbox_to_anchor=(1.1, 0.5), labels=exp_names)
 ax_left.set_title("(a)", x=-0.15, y=1.0, fontsize=18, weight='bold')
 ax_left.legend()
 

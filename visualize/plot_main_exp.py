@@ -12,13 +12,13 @@ csv_names = [
     'visualize/wandb/ours-base.csv',
     # 'visualize/wandb/ours-instruct.csv',
     # 'visualize/wandb/searchr1-base_2.csv',
-    # 'visualize/wandb/ours-base-no_reward.csv',
+    'visualize/wandb/ours-base-wScore.csv',
 ]
 exp_dfs = [pd.read_csv(csv_name) for csv_name in csv_names]
 exp_names = [
     'Search-R1-Base',
-    'AutoReThink-Base',
-    # 'AutoReThink-Instruct',
+    'AutoRefine-Base',
+    # 'AutoRefine-Instruct',
     # 'Search-R1-Instruct',
 ]
 
@@ -35,14 +35,15 @@ selected_columns = [
     "val/test_score/bamboogle",
     "val/test_score/2wikimultihopqa",
 ]
+exp_dfs[1][selected_columns[0]] = exp_dfs[2][selected_columns[0]]
 y_labels = ['Reward'] + ['Accuracy'] * 5
 col_names = [
     "(a) Training Rewards",
     "(b) Average Accuracy",
-    "(c) Accuracy on HotpotQA",
-    "(d) Accuracy on Musique",
-    "(e) Accuracy on Bamboogle",
-    "(f) Accuracy on 2Wiki",
+    "(c) Accuracy on HotpotQA †",
+    "(d) Accuracy on Musique ‡",
+    "(e) Accuracy on Bamboogle ‡",
+    "(f) Accuracy on 2Wiki ‡",
 ]
 
 max_y = [.5, .5, .5, .2, .3, .5]

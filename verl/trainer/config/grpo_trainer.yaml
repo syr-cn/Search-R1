@@ -40,6 +40,7 @@ actor_rollout_ref:
     shuffle: False
     refine_lambda: -1
     refine_score: 0.0
+    format_score: 0.0
     ulysses_sequence_parallel_size: 1 # sp size
     optim:
       lr: 1e-6

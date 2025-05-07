@@ -252,7 +252,7 @@ class RewardManager():
                 score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score, refine_score=self.refine_score)
             elif self.reward_style.lower() == 'f1':
                 compute_score_fn = qa_em.compute_score_f1
-                score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=0.1, refine_score=self.refine_score)
+                score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score, refine_score=self.refine_score)
             else:
                 raise NotImplementedError
 
@@ -365,8 +365,9 @@ def main_task(config):
 
     train_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/train/{config.trainer.experiment_name}.jsonl'
     refine_score = config.actor_rollout_ref.actor.refine_score
+    format_score = config.actor_rollout_ref.actor.format_score
     reward_style = config.reward_model.reward_style
-    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.train_num_examine, log_path=train_log_jsonl, refine_score=refine_score, reward_style=reward_style)
+    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.train_num_examine, log_path=train_log_jsonl, format_score=format_score, refine_score=refine_score, reward_style=reward_style)
 
     # Note that we always use function-based RM for validation
     val_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/val/{config.trainer.experiment_name}.jsonl'

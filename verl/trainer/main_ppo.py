@@ -156,6 +156,33 @@ class RewardManager():
             reward_tensor[i, valid_response_length - 1] = score
         return reward_tensor
 
+    def get_format_scores(self, data: DataProto):
+        reward_tensor = torch.zeros_like(data.batch['responses'], dtype=torch.float32)
+
+        for i in range(len(data)):
+            data_item = data[i]  # DataProtoItem
+
+            prompt_ids = data_item.batch['prompts']
+
+            prompt_length = prompt_ids.shape[-1]
+
+            valid_prompt_length = data_item.batch['attention_mask'][:prompt_length].sum()
+            valid_prompt_ids = prompt_ids[-valid_prompt_length:]
+
+            response_ids = data_item.batch['responses']
+            valid_response_length = data_item.batch['attention_mask'][prompt_length:].sum()
+            valid_response_ids = response_ids[:valid_response_length]
+
+            # decode
+            sequences = torch.cat((valid_prompt_ids, valid_response_ids))
+            sequences_str = self.tokenizer.decode(sequences)
+
+            ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
+            score = qa_em.compute_score_format(solution_str=sequences_str, ground_truth=ground_truth)
+
+            reward_tensor[i, valid_response_length - 1] = score
+        return reward_tensor
+
     def get_reverse_rank(self, data: DataProto):
         reward_tensor = torch.zeros_like(data.batch['responses'], dtype=torch.float32)
 

@@ -181,26 +181,11 @@ def compute_data_metrics(batch, use_critic=True):
     # TODO: add response length
     sequence_score = batch.batch['token_level_scores'].sum(-1)
     sequence_reward = batch.batch['token_level_rewards'].sum(-1)
-    
-    if 'token_level_information_scores' in batch.batch:
-        info_scores = batch.batch['token_level_information_scores'].sum(-1)
-    else:
-        info_scores = None
-    
-    if 'token_level_information_reverse_rank' in batch.batch:
-        reverse_rank_scores = batch.batch['token_level_information_reverse_rank'].sum(-1)
-    else:
-        reverse_rank_scores = None
-    
-    if 'token_level_answer_scores' in batch.batch:
-        answer_scores = batch.batch['token_level_answer_scores'].sum(-1)
-    else:
-        answer_scores = None
-    
-    if 'token_level_refine_scores' in batch.batch:
-        refine_scores = batch.batch['token_level_refine_scores'].sum(-1)
-    else:
-        refine_scores = None
+    info_scores = batch.batch['token_level_information_scores'].sum(-1)
+    reverse_rank_scores = batch.batch['token_level_information_reverse_rank'].sum(-1)
+    answer_scores = batch.batch['token_level_answer_scores'].sum(-1)
+    refine_scores = batch.batch['token_level_refine_scores'].sum(-1)
+    format_scores = batch.batch['token_level_format_scores'].sum(-1)
 
     advantages = batch.batch['advantages']
     returns = batch.batch['returns']
@@ -282,6 +267,7 @@ def compute_data_metrics(batch, use_critic=True):
             'critic/reverse_rank_scores/max': torch.max(reverse_rank_scores).detach().item(),
             'critic/reverse_rank_scores/min': torch.min(reverse_rank_scores).detach().item(),
         } if (reverse_rank_scores is not None) else {}),
+        'critic/format_scores/mean': torch.mean(format_scores).detach().item(),
 
         # response length
         'response_length/mean':
@@ -1001,6 +987,7 @@ class RayPPOTrainer(object):
                         batch.batch['token_level_information_scores'] = self.reward_fn.get_subem(batch)
                         batch.batch['token_level_answer_scores'] = self.reward_fn.get_answer_em(batch)
                         batch.batch['token_level_information_reverse_rank'] = self.reward_fn.get_reverse_rank(batch)
+                        batch.batch['token_level_format_scores'] = self.reward_fn.get_format_scores(batch)
 
                         refine_reward_tensor = self.reward_fn.get_refine_subem(batch)
                         batch.batch['token_level_refine_scores'] = refine_reward_tensor

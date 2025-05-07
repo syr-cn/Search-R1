@@ -62,6 +62,32 @@ def compute_f1_scores(prediction: str, ground_truths: list):
             final_metric[k] = max(eval(k), final_metric[k])
     return final_metric
 
+def validate_format(text: str):
+    """
+    validate the template format
+    return: (is valid)
+    """
+    # extract all assistant responses
+    if '<|im_start|>assistant' in text:
+        prompt, response = text.split("<|im_start|>assistant", 1)
+    if '<refine>' in prompt:
+        token_list = ['think', 'search', 'refine', 'answer']
+    else:
+        token_list = ['think', 'search', 'answer']
+
+    if not response:
+        return 0
+
+    for special_tags in token_list:
+        start_token = f"<{special_tags}>"
+        end_token = f"</{special_tags}>"
+        start_count = response.count(start_token)
+        end_count = response.count(end_token)
+        if start_count != end_count:
+            return 0
+        if start_count == 0:
+            return 0
+    return 1
 
 def em_check(prediction, golden_answers):
     if isinstance(golden_answers, str):
@@ -144,6 +170,9 @@ def extract_solution(solution_str):
     # If there are 2 or more matches, return the last one
     return matches[-1].group(1).strip()
 
+def compute_score_format(solution_str, ground_truth, format_score=0.1):
+    format_validity = validate_format(solution_str)
+    return format_validity
 
 def compute_score_research(solution_str, ground_truth, format_score=0.1):
     """The scoring function for exact match (EM).
@@ -168,10 +197,13 @@ def compute_score_research(solution_str, ground_truth, format_score=0.1):
         return 0
     else:
         f1_score = compute_f1_scores(answer, ground_truth['target'])['f1']
+        format_validity = validate_format(solution_str)
         if f1_score > 0:
             return f1_score
-        else:
+        elif format_validity:
             return format_score
+        else:
+            return 0.0
 
 def compute_score_em(solution_str, ground_truth, method='strict', format_score=0., score=1., refine_score=0.0):
     """The scoring function for exact match (EM).
@@ -216,13 +248,6 @@ def compute_score_subem(solution_str, ground_truth, method='strict', format_scor
     """
     answer = extract_solution(solution_str=solution_str)
     do_print = random.randint(1, 1024) == 1
-    
-    if do_print:
-        print(f"--------------------------------")
-        print(f"Golden answers: {ground_truth['target']}")
-        print(f"Extracted answer: {answer}")
-        print(f"Solution string: {solution_str}")
-    
     if answer is None:
         return 0
     else:

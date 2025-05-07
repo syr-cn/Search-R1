@@ -1,6 +1,7 @@
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
-export DATA_DIR='data/musique_train_base_score'
+data_name="nq_hotpotqa_train_base_score"
+export DATA_DIR="data/${data_name}"
 
 wandb_token="8c63841d0875e4fde65a42fb47b52e6a18b8a1ed"
 export WANDB_MODE="online"
@@ -17,20 +18,21 @@ WAND_PROJECT='Search-R1'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-llama3.1-8b-it-em
 
 # export BASE_MODEL='Qwen/Qwen2.5-3B'
-# export EXPERIMENT_NAME="musique_train_base_score-research-grpo-qwen2.5-3b-em"
+# export EXPERIMENT_NAME="$data_name-research-grpo-qwen2.5-3b-em"
 export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
-export EXPERIMENT_NAME="musique_train_base_score-research-grpo-qwen2.5-3b-it-em"
+export EXPERIMENT_NAME="$data_name-research-grpo-qwen2.5-3b-it-em"
 # export BASE_MODEL='Qwen/Qwen2.5-7B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-it-em
 
-# set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
 
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
+# 6656 >= (1536 + 512 * (5 - 1) + 512 * 5)
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
+    reward_model.reward_style="research" \
     data.train_files=$DATA_DIR/train.parquet \
     data.val_files=$DATA_DIR/valid_500.parquet \
     data.train_data_num=null \
@@ -39,8 +41,9 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.val_batch_size=256 \
     data.max_prompt_length=6656 \
     data.max_response_length=512 \
-    data.max_start_length=1536 \
+    data.max_start_length=2048 \
     data.max_obs_length=512 \
+    max_turns=5 \
     data.shuffle_train_dataloader=true \
     algorithm.adv_estimator=grpo \
     algorithm.filter_groups.enable=false \
@@ -50,23 +53,20 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.refine_lambda=-1 \
     actor_rollout_ref.actor.refine_score=0.0 \
     actor_rollout_ref.actor.optim.lr=1e-6 \
-    actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.95 \
     actor_rollout_ref.actor.use_kl_loss=true \
-    actor_rollout_ref.actor.kl_loss_coef=0.001 \
-    actor_rollout_ref.actor.kl_loss_type=low_var_kl \
-    actor_rollout_ref.actor.ppo_mini_batch_size=64 \
+    actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size=64 \
-    actor_rollout_ref.actor.fsdp_config.param_offload=false \
-    actor_rollout_ref.actor.fsdp_config.optimizer_offload=false \
-    actor_rollout_ref.actor.use_dynamic_bsz=true \
+    actor_rollout_ref.actor.fsdp_config.param_offload=true \
+    actor_rollout_ref.actor.fsdp_config.grad_offload=true \
+    actor_rollout_ref.actor.fsdp_config.optimizer_offload=true \
     actor_rollout_ref.rollout.log_prob_micro_batch_size=128 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.6 \
-    actor_rollout_ref.rollout.enforce_eager=False \
-    actor_rollout_ref.rollout.free_cache_engine=False \
     actor_rollout_ref.ref.log_prob_micro_batch_size=128 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
+    actor_rollout_ref.actor.kl_loss_coef=0.001 \
+    actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     algorithm.no_think_rl=false \
     actor_rollout_ref.rollout.n_agent=5 \
     actor_rollout_ref.rollout.n=1 \
@@ -86,7 +86,6 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     trainer.total_training_steps=250 \
     trainer.default_hdfs_dir=null \
     trainer.default_local_dir=verl_checkpoints/$EXPERIMENT_NAME \
-    max_turns=5 \
     retriever.url="http://127.0.0.1:8000/retrieve" \
     retriever.topk=3 \
     2>&1 | tee log/$EXPERIMENT_NAME.log

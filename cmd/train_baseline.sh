@@ -1,10 +1,10 @@
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
 # export DATA_DIR='data/nq_hotpotqa_train'
-export DATA_DIR='data/nq_hotpotqa_train_refine_score'
+export DATA_DIR='data/nq_hotpotqa_train_base_score'
 
 wandb_token="8c63841d0875e4fde65a42fb47b52e6a18b8a1ed"
-WANDB_MODE="online"
+export WANDB_MODE="online"
 export WANDB_API_KEY=$wandb_token
 WAND_PROJECT='Search-R1'
 
@@ -17,10 +17,10 @@ WAND_PROJECT='Search-R1'
 # export BASE_MODEL='meta-llama/Llama-3.1-8B-Instruct'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-llama3.1-8b-it-em
 
-export BASE_MODEL='Qwen/Qwen2.5-3B'
-export EXPERIMENT_NAME=nq_hotpotqa_train_refine_score-search-r1-grpo-qwen2.5-3b-em
-# export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
-# export EXPERIMENT_NAME="nq_hotpotqa_train-r1-grpo-qwen2.5-3b-it-em-summary-2"
+# export BASE_MODEL='Qwen/Qwen2.5-3B'
+# export EXPERIMENT_NAME=nq_hotpotqa_train_base_score-search-r1-grpo-qwen2.5-3b-em
+export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
+export EXPERIMENT_NAME="nq_hotpotqa_train_base_score-search-r1-grpo-qwen2.5-3b-it-em-2"
 # export BASE_MODEL='Qwen/Qwen2.5-7B'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-em
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'
@@ -73,7 +73,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.state_masking=true \
     trainer.logger=['wandb'] \
     +trainer.val_only=false \
-    +trainer.val_before_train=false \
+    +trainer.val_before_train=true \
     trainer.default_hdfs_dir=null \
     trainer.n_gpus_per_node=$num_gpus \
     trainer.nnodes=1 \

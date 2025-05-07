@@ -1,19 +1,15 @@
-# export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5"
-# num_gpus=6
-# export CUDA_VISIBLE_DEVICES="4,5,6,7"
-# num_gpus=4
-# export CUDA_VISIBLE_DEVICES="0,1,2,3"
-# num_gpus=4
+
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
 # data_name="nq_hotpotqa_train_base_score"
 # data_name="nq_hotpotqa_train_refine_score"
-data_name="nq_hotpotqa_train_refine_overhaul_score"
+# data_name="nq_hotpotqa_train_refine_overhaul_score"
+data_name="nq_hotpotqa_train_refine_overhaul_2_score"
 export DATA_DIR="data/${data_name}"
 export HF_ENDPOINT=https://hf-mirror.com
 
 wandb_token="8c63841d0875e4fde65a42fb47b52e6a18b8a1ed"
-WANDB_MODE="online"
+export WANDB_MODE="online"
 export WANDB_API_KEY=$wandb_token
 WAND_PROJECT='Search-R1'
 
@@ -27,7 +23,7 @@ WAND_PROJECT='Search-R1'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-llama3.1-8b-it-em
 
 export BASE_MODEL='Qwen/Qwen2.5-3B'
-export EXPERIMENT_NAME="$data_name-r1-grpo-qwen2.5-3b-em-refine_lambda_0.1"
+export EXPERIMENT_NAME="$data_name-r1-grpo-qwen2.5-3b-em-refine_score_0.2"
 # export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
 # export EXPERIMENT_NAME="$data_name-r1-grpo-qwen2.5-3b-it-em-refine_score_0.1"
 # export BASE_MODEL='Qwen/Qwen2.5-7B'
@@ -40,6 +36,9 @@ export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has som
 
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
 # 4096 >= (2048 + 500 * (2 - 1) + 500 * 2)
+# 5120 >= (2048 + 500 * (3 - 1) + 500 * 3)
+# 6144 >= (2048 + 512 * (4 - 1) + 512 * 4)
+# 6656 >= (1536 + 512 * (5 - 1) + 512 * 5)
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.train_files=$DATA_DIR/train.parquet \
@@ -48,10 +47,11 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     data.val_data_num=null \
     data.train_batch_size=512 \
     data.val_batch_size=256 \
-    data.max_prompt_length=4096 \
-    data.max_response_length=500 \
+    data.max_prompt_length=6144 \
+    data.max_response_length=512 \
     data.max_start_length=2048 \
-    data.max_obs_length=500 \
+    data.max_obs_length=512 \
+    max_turns=4 \
     data.shuffle_train_dataloader=true \
     algorithm.adv_estimator=grpo \
     algorithm.filter_groups.enable=false \
@@ -61,10 +61,9 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.model.path=$BASE_MODEL \
     actor_rollout_ref.model.enable_gradient_checkpointing=true \
     actor_rollout_ref.model.use_remove_padding=True \
-    actor_rollout_ref.actor.refine_lambda=0.0 \
-    actor_rollout_ref.actor.refine_score=0.1 \
+    actor_rollout_ref.actor.refine_lambda=-1 \
+    actor_rollout_ref.actor.refine_score=0.2 \
     actor_rollout_ref.actor.optim.lr=1e-6 \
-    actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.95 \
     actor_rollout_ref.actor.use_kl_loss=true \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
     actor_rollout_ref.actor.ppo_micro_batch_size=64 \
@@ -97,7 +96,6 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     trainer.total_training_steps=250 \
     trainer.default_hdfs_dir=null \
     trainer.default_local_dir=verl_checkpoints/$EXPERIMENT_NAME \
-    max_turns=2 \
     retriever.url="http://127.0.0.1:8000/retrieve" \
     retriever.topk=3 \
     2>&1 | tee log/$EXPERIMENT_NAME.log

@@ -32,7 +32,7 @@ export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has som
 # 6656 >= (1536 + 512 * (5 - 1) + 512 * 5)
 
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
-    reward_model.reward_style="research" \
+    reward_model.reward_style="F1" \
     data.train_files=$DATA_DIR/train.parquet \
     data.val_files=$DATA_DIR/valid_500.parquet \
     data.train_data_num=null \

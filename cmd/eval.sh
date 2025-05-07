@@ -1,7 +1,7 @@
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
-export CUDA_VISIBLE_DEVICES="4,5,6,7"
-num_gpus=4
+# export CUDA_VISIBLE_DEVICES="4,5,6,7"
+# num_gpus=4
 export HF_ENDPOINT=https://hf-mirror.com
 
 # set -x
@@ -10,9 +10,10 @@ export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has som
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
 # 4096 >= (2048 + 500 * (2 - 1) + 500 * 2)
 
-data_name=nq_hotpotqa_train_base_score
-export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_base_score-search-r1-grpo-qwen2.5-3b-em/actor/best_step_145"
-export EXPERIMENT_NAME="eval-searchr1-r1-grpo-qwen2.5-3b-em"
+data_name=nq_hotpotqa_train_refine_score
+data_name="nq_hotpotqa_train_refine_overhaul_score"
+export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_refine_overhaul_score-r1-grpo-qwen2.5-3b-em-refine_lambda_0.1_2/actor/best_val_step_180"
+export EXPERIMENT_NAME="eval-nq_hotpotqa_train_refine_overhaul_score-r1-grpo-qwen2.5-3b-em-step180"
 
 export DATA_DIR=data/${data_name}
 PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \

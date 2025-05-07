@@ -35,7 +35,7 @@ class RewardManager():
     """The reward manager.
     """
 
-    def __init__(self, tokenizer, num_examine, format_score=0., refine_score=0., reward_style='search-r1', log_path=None) -> None:
+    def __init__(self, tokenizer, num_examine, format_score=0., refine_score=0., reward_style='EM', log_path=None) -> None:
         self.tokenizer = tokenizer
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
         self.format_score = format_score
@@ -246,13 +246,13 @@ class RewardManager():
             ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
 
             # select rm_score
-            if self.reward_style == 'search-r1':
+            if self.reward_style.lower() == 'em':
                 compute_score_fn = qa_em.compute_score_em
 
                 score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score, refine_score=self.refine_score)
-            elif self.reward_style == 'research':
-                compute_score_fn = qa_em.compute_score_research
-                score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=0.1)
+            elif self.reward_style.lower() == 'f1':
+                compute_score_fn = qa_em.compute_score_f1
+                score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=0.1, refine_score=self.refine_score)
             else:
                 raise NotImplementedError
 

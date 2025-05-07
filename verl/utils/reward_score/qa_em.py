@@ -174,7 +174,7 @@ def compute_score_format(solution_str, ground_truth, format_score=0.1):
     format_validity = validate_format(solution_str)
     return format_validity
 
-def compute_score_research(solution_str, ground_truth, format_score=0.1):
+def compute_score_f1(solution_str, ground_truth, format_score=0.1, refine_score=0.0):
     """The scoring function for exact match (EM).
 
     Args:
@@ -198,12 +198,17 @@ def compute_score_research(solution_str, ground_truth, format_score=0.1):
     else:
         f1_score = compute_f1_scores(answer, ground_truth['target'])['f1']
         format_validity = validate_format(solution_str)
+        refine_subem = compute_refine_score_subem(solution_str, ground_truth, format_score=False, score=True)
+
         if f1_score > 0:
             return f1_score
-        elif format_validity:
-            return format_score
         else:
-            return 0.0
+            score = 0.0
+            if format_validity:
+                score += format_score
+            if refine_subem > 0:
+                score += refine_score
+            return score
 
 def compute_score_em(solution_str, ground_truth, method='strict', format_score=0., score=1., refine_score=0.0):
     """The scoring function for exact match (EM).

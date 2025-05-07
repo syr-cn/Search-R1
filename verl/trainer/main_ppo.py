@@ -24,13 +24,7 @@ import re
 import numpy as np
 import json
 
-def _select_rm_score_fn(data_source):
-    if data_source in ['nq', 'triviaqa', 'popqa', 'hotpotqa', '2wikimultihopqa', 'musique', 'bamboogle']:
-        return qa_em.compute_score_em
-    else:
-        raise NotImplementedError
-
-def keep_through_last_refine(text: str) -> str:
+def keep_till_last_refine(text: str) -> str:
     token = "</refine>"
     pos = text.rfind(token)
     if pos == -1:
@@ -41,12 +35,13 @@ class RewardManager():
     """The reward manager.
     """
 
-    def __init__(self, tokenizer, num_examine, format_score=0., refine_score=0., log_path=None) -> None:
+    def __init__(self, tokenizer, num_examine, format_score=0., refine_score=0., reward_style='search-r1', log_path=None) -> None:
         self.tokenizer = tokenizer
         self.num_examine = num_examine  # the number of batches of decoded responses to print to the console
         self.format_score = format_score
         self.refine_score = refine_score
         self.log_path = log_path
+        self.reward_style = reward_style
 
     def get_refine_subem(self, data: DataProto):
         reward_tensor = torch.zeros_like(data.batch['responses'], dtype=torch.float32)
@@ -70,7 +65,7 @@ class RewardManager():
             sequences_str = self.tokenizer.decode(sequences)
             response_str = self.tokenizer.decode(valid_response_ids)
 
-            sequences_before_refine_str = keep_through_last_refine(response_str)
+            sequences_before_refine_str = keep_till_last_refine(response_str)
             sequences_before_refine_ids = self.tokenizer(sequences_before_refine_str, return_tensors='pt', add_special_tokens=False).input_ids[0]
             refine_length = len(sequences_before_refine_ids)
 
@@ -224,14 +219,19 @@ class RewardManager():
             ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
 
             # select rm_score
-            data_source = data_item.non_tensor_batch['data_source']
-            compute_score_fn = _select_rm_score_fn(data_source)
+            if self.reward_style == 'search-r1':
+                compute_score_fn = qa_em.compute_score_em
 
-            score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score, refine_score=self.refine_score)
+                score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=self.format_score, refine_score=self.refine_score)
+            elif self.reward_style == 'research':
+                compute_score_fn = qa_em.compute_score_research
+                score = compute_score_fn(solution_str=sequences_str, ground_truth=ground_truth, format_score=0.1)
+            else:
+                raise NotImplementedError
 
             reward_tensor[i, valid_response_length - 1] = score
-            # all_scores.append(score)
 
+            data_source = data_item.non_tensor_batch['data_source']
             if data_source not in already_print_data_sources:
                 already_print_data_sources[data_source] = 0
 
@@ -250,13 +250,6 @@ class RewardManager():
                     with open(self.log_path, 'a+') as f:
                         f.write(json.dumps(log_info) + '\n')
 
-        # print(f"[DEBUG] all_scores: {all_scores}")
-        # print(f"[DEBUG] all_scores shape: {np.array(all_scores).shape}")
-        # print(f"[DEBUG] all_scores mean: {np.mean(all_scores)}")
-        # print(f"[DEBUG] all_scores max: {np.max(all_scores)}")
-        # print(f"[DEBUG] all_scores min: {np.min(all_scores)}")
-        # print(f"[DEBUG] all_scores std: {np.std(all_scores)}")
-
         return reward_tensor
 
 
@@ -264,7 +257,7 @@ import ray
 import hydra
 
 
-@hydra.main(config_path='config', config_name='dapo_trainer', version_base=None)
+@hydra.main(config_path='config', config_name='grpo_trainer', version_base=None)
 def main(config):
     if not ray.is_initialized():
         # this is for local ray cluster
@@ -345,11 +338,12 @@ def main_task(config):
 
     train_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/train/{config.trainer.experiment_name}.jsonl'
     refine_score = config.actor_rollout_ref.actor.refine_score
-    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.train_num_examine, log_path=train_log_jsonl, refine_score=refine_score)
+    reward_style = config.reward_model.reward_style
+    reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.train_num_examine, log_path=train_log_jsonl, refine_score=refine_score, reward_style=reward_style)
 
     # Note that we always use function-based RM for validation
     val_log_jsonl = f'/mnt/finder/shiyr/code/R1/Search-R1/log/val/{config.trainer.experiment_name}.jsonl'
-    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.val_num_examine, log_path=val_log_jsonl)
+    val_reward_fn = RewardManager(tokenizer=tokenizer, num_examine=config.reward_model.val_num_examine, log_path=val_log_jsonl, reward_style=reward_style)
 
     resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
     if config.algorithm.filter_groups.enable:

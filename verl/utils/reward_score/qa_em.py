@@ -15,6 +15,7 @@
 import re
 import string
 import random
+from collections import Counter
 
 def normalize_answer(s):
     def remove_articles(text):
@@ -31,6 +32,35 @@ def normalize_answer(s):
         return text.lower()
 
     return white_space_fix(remove_articles(remove_punc(lower(s))))
+
+
+def compute_f1_scores(prediction: str, ground_truths: list):
+    final_metric = {"f1": 0, "precision": 0, "recall": 0}
+    if isinstance(ground_truths, str):
+        ground_truths = [ground_truths]
+    for ground_truth in ground_truths:
+        normalized_prediction = normalize_answer(prediction)
+        normalized_ground_truth = normalize_answer(ground_truth)
+
+        if normalized_prediction in ["yes", "no", "noanswer"] and normalized_prediction != normalized_ground_truth:
+            continue
+        if (
+            normalized_ground_truth in ["yes", "no", "noanswer"]
+            and normalized_prediction != normalized_ground_truth
+        ):
+            continue
+        prediction_tokens = normalized_prediction.split()
+        ground_truth_tokens = normalized_ground_truth.split()
+        common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+        num_same = sum(common.values())
+        if num_same == 0:
+            continue
+        precision = 1.0 * num_same / len(prediction_tokens)
+        recall = 1.0 * num_same / len(ground_truth_tokens)
+        f1 = (2 * precision * recall) / (precision + recall)
+        for k in ["f1", "precision", "recall"]:
+            final_metric[k] = max(eval(k), final_metric[k])
+    return final_metric
 
 
 def em_check(prediction, golden_answers):
@@ -114,6 +144,34 @@ def extract_solution(solution_str):
     # If there are 2 or more matches, return the last one
     return matches[-1].group(1).strip()
 
+
+def compute_score_research(solution_str, ground_truth, format_score=0.1):
+    """The scoring function for exact match (EM).
+
+    Args:
+        solution_str: the solution text
+        ground_truth: the ground truth
+        method: the method to extract the solution, choices are 'strict' and 'flexible'
+        format_score: the score for the format
+        score: the score for the correct answer
+    """
+    answer = extract_solution(solution_str=solution_str)
+    do_print = random.randint(1, 1024) == 1
+    
+    if do_print:
+        print(f"--------------------------------")
+        print(f"Golden answers: {ground_truth['target']}")
+        print(f"Extracted answer: {answer}")
+        print(f"Solution string: {solution_str}")
+    
+    if answer is None:
+        return 0
+    else:
+        f1_score = compute_f1_scores(answer, ground_truth['target'])['f1']
+        if f1_score > 0:
+            return f1_score
+        else:
+            return format_score
 
 def compute_score_em(solution_str, ground_truth, method='strict', format_score=0., score=1., refine_score=0.0):
     """The scoring function for exact match (EM).

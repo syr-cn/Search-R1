@@ -8,16 +8,16 @@ line_palette = sns.color_palette("husl", n_colors=2)
 
 # Step 1: Read the two CSV files
 csv_names = [
-    'visualize/wandb/searchr1-base_2.csv',
     'visualize/wandb/ours-base.csv',
+    'visualize/wandb/searchr1-base_2.csv',
     # 'visualize/wandb/ours-instruct.csv',
     # 'visualize/wandb/searchr1-base_2.csv',
     'visualize/wandb/ours-base-wScore.csv',
 ]
 exp_dfs = [pd.read_csv(csv_name) for csv_name in csv_names]
 exp_names = [
-    'Search-R1-Base',
     'AutoRefine-Base',
+    'Search-R1-Base',
     # 'AutoRefine-Instruct',
     # 'Search-R1-Instruct',
 ]
@@ -35,15 +35,16 @@ selected_columns = [
     "val/test_score/bamboogle",
     "val/test_score/2wikimultihopqa",
 ]
-exp_dfs[1][selected_columns[0]] = exp_dfs[2][selected_columns[0]]
+exp_dfs[0][selected_columns[0]] = exp_dfs[2][selected_columns[0]]
 y_labels = ['Reward'] + ['Accuracy'] * 5
+y_labels = ['Accuracy'] * 6
 col_names = [
     "(a) Training Accuracy",
-    "(b) Validation Accuracy",
-    "(c) Accuracy on HotpotQA †",
-    "(d) Accuracy on Musique ‡",
-    "(e) Accuracy on Bamboogle ‡",
-    "(f) Accuracy on 2Wiki ‡",
+    "(b) Average Downstream Accuracy",
+    "(c) Accuracy on HotpotQA",
+    "(d) Accuracy on Musique",
+    "(e) Accuracy on Bamboogle",
+    "(f) Accuracy on 2Wiki",
 ]
 
 max_y = [.5, .5, .5, .2, .3, .5]
@@ -58,8 +59,8 @@ for i in range(len(selected_columns)):
     # axes[i].plot(exp_dfs[0][col], label=exp_names[0], alpha=0.7)
     # axes[i].plot(exp_dfs[1][col], label=exp_names[1], alpha=0.7)
     marker = '^' if i!=0 else None
-    l1, = axes[i].plot(exp_dfs[0][col][:201].dropna(), label=exp_names[0], alpha=1, color=line_palette[0], marker=marker, linestyle='-', linewidth=2)
-    l2, = axes[i].plot(exp_dfs[1][col][:201].dropna(), label=exp_names[1], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2)
+    l1, = axes[i].plot(exp_dfs[0][col][:201].dropna(), label=exp_names[0], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2, zorder=5)
+    l2, = axes[i].plot(exp_dfs[1][col][:201].dropna(), label=exp_names[1], alpha=1, color=line_palette[0], marker=marker, linestyle='-', linewidth=2, zorder=4)
     if i == 0:
         lines = [l1, l2]
         labels = exp_names

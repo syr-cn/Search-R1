@@ -6,10 +6,10 @@ import seaborn as sns
 
 # fig, (ax_left, ax_right) = plt.subplots(ncols=2, figsize=(14, 7), subplot_kw={ 'polar': False, 'polar': True })
 fig = plt.figure(figsize=(14, 7))
-gs = fig.add_gridspec(1, 2, width_ratios=[1.3, 1])  # Wider right plot if needed
+gs = fig.add_gridspec(1, 2, width_ratios=[1.5, 1])  # Wider right plot if needed
 ax_left = fig.add_subplot(gs[0, 0])                 # Normal axes (line plot)
 ax_right = fig.add_subplot(gs[0, 1], polar=True)    # Polar axes (radar plot)
-ax_left.set_box_aspect(.8)
+ax_left.set_box_aspect(.6)
 
 # === Right Panel: Line Plot ===
 # line_palette = sns.color_palette("Set2", n_colors=5)
@@ -46,12 +46,12 @@ ax_left.grid(True)
 
 ax_left.text(
     x=max_x - 95, y=1.02,
-    s="↑multi-turn search",
+    s="↑multi-hop search",
     color='black', fontsize=12, va='bottom', ha='left', weight='bold'
 )
 ax_left.text(
     x=max_x - 95, y=0.98,
-    s="↓one-turn search",
+    s="↓single-hop search",
     color='black', fontsize=12, va='top', ha='left', weight='bold'
 )
 

@@ -41,6 +41,7 @@ y_lims = [
 ]
 y_lims = [(i-.03, j+.03) for i, j in y_lims]
 max_x=181
+min_x=1
     
 # Reorder plot indices: move (b) to bottom left (index 3)
 plot_order = [0, 1, 2, 3]  # original indices of selected_columns
@@ -53,8 +54,8 @@ for plot_idx, original_idx in enumerate(plot_order):
     col = selected_columns[original_idx]
     col_name = col_names[original_idx]
     marker = '^' if original_idx >-1 else None
-    l1, = axes[plot_idx].plot(exp_dfs[0][col][:max_x].dropna(), label=exp_names[0], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2, zorder=5)
-    l2, = axes[plot_idx].plot(exp_dfs[1][col][:max_x].dropna(), label=exp_names[1], alpha=1, color=line_palette[0], marker=marker, linestyle='-', linewidth=2, zorder=4)
+    l1, = axes[plot_idx].plot(exp_dfs[0][col][min_x:max_x].dropna(), label=exp_names[0], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2, zorder=5)
+    l2, = axes[plot_idx].plot(exp_dfs[1][col][min_x:max_x].dropna(), label=exp_names[1], alpha=1, color=line_palette[0], marker=marker, linestyle='-', linewidth=2, zorder=4)
     
     if original_idx == 0:
         lines = [l1, l2]

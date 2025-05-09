@@ -23,13 +23,13 @@ WAND_PROJECT='Search-R1'
 # export EXPERIMENT_NAME=nq-search-r1-grpo-llama3.1-8b-it-em
 
 export BASE_MODEL='Qwen/Qwen2.5-3B'
-export EXPERIMENT_NAME="$data_name-grpo-qwen2.5-3b-f1-ref0.2"
+export EXPERIMENT_NAME="$data_name-grpo-qwen2.5-3b-f1-ref0.1"
 # export BASE_MODEL='Qwen/Qwen2.5-3B-Instruct'
-# export EXPERIMENT_NAME="$data_name-research-grpo-qwen2.5-3b-it-em-ref0.1"
-# export BASE_MODEL='Qwen/Qwen2.5-7B'
-# export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-em
+# export EXPERIMENT_NAME="$data_name-grpo-qwen2.5-3b-it-f1-ref0.1"
+export BASE_MODEL='Qwen/Qwen2.5-7B'
+export EXPERIMENT_NAME="$data_name-grpo-qwen2.5-7b-f1-ref0.1"
 # export BASE_MODEL='Qwen/Qwen2.5-7B-Instruct'
-# export EXPERIMENT_NAME=nq-search-r1-grpo-qwen2.5-7b-it-em
+# export EXPERIMENT_NAME="$data_name-grpo-qwen2.5-7b-it-f1-ref0.1"
 
 # set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
@@ -60,7 +60,7 @@ PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.model.enable_gradient_checkpointing=true \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.refine_lambda=-1 \
-    actor_rollout_ref.actor.refine_score=0.2 \
+    actor_rollout_ref.actor.refine_score=0.1 \
     actor_rollout_ref.actor.format_score=0.0 \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.actor.use_kl_loss=true \

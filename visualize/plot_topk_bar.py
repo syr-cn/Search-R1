@@ -56,5 +56,5 @@ handles = [bars1, bars2, line]
 labels = [bar_labels[0], bar_labels[1], line_label]
 fig.legend(handles, labels, loc='lower center', ncol=3, fontsize=10, frameon=True, bbox_to_anchor=(0.5, -0.01))
 
-plt.tight_layout(rect=[0, 0.05, 1, 1])
+plt.tight_layout(rect=[0, 0.1, 1, 1], pad=.2)
 plt.savefig("visualize/figures/barline_top_k_combined.pdf", dpi=300, bbox_inches='tight')

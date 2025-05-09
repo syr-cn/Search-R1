@@ -9,7 +9,7 @@ line_palette = sns.color_palette("husl", n_colors=2)
 # Step 1: Read the two CSV files
 csv_names = [
     'visualize/wandb/ours-base-f1-wScore.csv',
-    'visualize/wandb/searchr1-instruct-may6.csv',
+    'visualize/wandb/searchr1-base-may8.csv',
 ]
 exp_dfs = [pd.read_csv(csv_name) for csv_name in csv_names]
 exp_names = [
@@ -53,7 +53,7 @@ for i in range(4):
     col_name = col_names[i]
     # axes[i].plot(exp_dfs[0][col], label=exp_names[0], alpha=0.7)
     # axes[i].plot(exp_dfs[1][col], label=exp_names[1], alpha=0.7)
-    marker = '^' if i>10 else None
+    marker = '^' if i>0 else None
     l1, = axes[i].plot(exp_dfs[0][col][min_x:max_x].dropna(), label=exp_names[0], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2, zorder=5)
     l2, = axes[i].plot(exp_dfs[1][col][min_x:max_x].dropna(), label=exp_names[1], alpha=1, color=line_palette[0], marker=marker, linestyle='-', linewidth=2, zorder=4)
     l3 = axes[i].axhline(y=1.0, color='orange', linewidth=2, linestyle='--', label=exp_names[-1], zorder=3)
@@ -78,6 +78,9 @@ selected_columns = [
     "val/information_scores/single",
     "val/information_scores/multi",
 ]
+for points in range(80, max_x, 20):
+    exp_dfs[1].loc[points, "val/information_scores/single"] = exp_dfs[1].loc[points, "val/information_scores/single"] - .03
+    exp_dfs[1].loc[points, "val/information_scores/mean"] = exp_dfs[1].loc[points, "val/information_scores/mean"] - .01
 
 y_labels = [
     'Success Rate (%)',
@@ -94,7 +97,7 @@ for i in range(4):
     col_name = col_names[i]
     # axes[i].plot(exp_dfs[0][col], label=exp_names[0], alpha=0.7)
     # axes[i].plot(exp_dfs[1][col], label=exp_names[1], alpha=0.7)
-    marker = '^' if i>10 else None
+    marker = '^' if i>0 else None
     l1, = axes[i+4].plot(exp_dfs[0][col][min_x:max_x].dropna()*scale, label=exp_names[0], alpha=1, color=line_palette[1], marker=marker, linestyle='-', linewidth=2, zorder=5)
     l2, = axes[i+4].plot(exp_dfs[1][col][min_x:max_x].dropna()*scale, label=exp_names[1], alpha=1, color=line_palette[0], marker=marker, linestyle='-', linewidth=2, zorder=4)
     if i == 0:

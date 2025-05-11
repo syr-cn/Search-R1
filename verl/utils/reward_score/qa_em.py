@@ -137,14 +137,15 @@ def extract_information_list(solution_str):
     return matches
 
 def extract_refine(solution_str):
+    solution_str = solution_str.split('<|im_start|>assistant')[1]
     info_pattern = r'<refine>(.*?)</refine>'
     matches = re.findall(info_pattern, solution_str, re.DOTALL)
     
-    if len(matches) <= 1:
+    if len(matches) == 0:
         return None
     
     # Concatenate from the second match onward
-    combined_info = ' '.join(matches[1:]).strip()
+    combined_info = ' '.join(matches).strip()
     return combined_info
 
 

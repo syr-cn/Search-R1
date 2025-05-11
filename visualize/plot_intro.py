@@ -6,14 +6,14 @@ import seaborn as sns
 
 # fig, (ax_left, ax_right) = plt.subplots(ncols=2, figsize=(14, 7), subplot_kw={ 'polar': False, 'polar': True })
 fig = plt.figure(figsize=(14, 7))
-gs = fig.add_gridspec(1, 2, width_ratios=[1.5, 1])  # Wider right plot if needed
+gs = fig.add_gridspec(1, 2, width_ratios=[1.4, 1])  # Wider right plot if needed
 ax_left = fig.add_subplot(gs[0, 0])                 # Normal axes (line plot)
 ax_right = fig.add_subplot(gs[0, 1], polar=True)    # Polar axes (radar plot)
-ax_left.set_box_aspect(.6)
+ax_left.set_box_aspect(.7)
 
 # === Right Panel: Line Plot ===
 # line_palette = sns.color_palette("Set2", n_colors=5)
-line_palette = sns.color_palette("Set2", n_colors=3)
+line_palette = sns.color_palette("husl", n_colors=3)
 
 csv_names = [
     'visualize/wandb/ours-base-f1-wScore.csv',
@@ -23,48 +23,53 @@ csv_names = [
 line_dfs = [pd.read_csv(csv_name) for csv_name in csv_names]
 col_name = 'env/number_of_valid_search'
 # col_name = 'val/number_of_valid_search/mean'
-col_name = 'val/number_of_valid_search/multi'
+col_name = 'val/number_of_valid_search/'
 exp_names = [
-    'AutoRefine-Base',
-    'Search-R1-Base',
-    'ReSearch-Base',
-    'y=1',
+    'AutoRefine',
+    'Search-R1',
+    'ReSearch',
+    'x=1',
 ]
 
-# special_len = len(line_dfs[0][col_name][180:])
-# line_dfs[0].loc[180:, col_name] = 0.001 * np.random.randn(special_len) + 1
-# line_dfs[0].to_csv(csv_names[0], index=False)
+ds_keys = ["nq", "triviaqa", "popqa", "hotpotqa", "2wikimultihopqa", "musique", "bamboogle"]
+ds_values = ["NQ", "TriviaQA", "PopQA", "HotpotQA", "2Wiki", "Musique", "Bamboogle"]
 
-max_x = 172
-ax_left.plot(line_dfs[0][col_name][:max_x].dropna(), label=exp_names[0], linewidth=3, color=line_palette[0], zorder=6)
-ax_left.plot(line_dfs[1][col_name][:max_x].dropna(), label=exp_names[1], linewidth=3, color=line_palette[1], zorder=5)
-ax_left.plot(line_dfs[2][col_name][:max_x].dropna(), label=exp_names[2], linewidth=3, color=line_palette[2], zorder=4)
-ax_left.axhline(y=1.0, color='red', linewidth=1, linestyle='--', label=exp_names[-1], zorder=3)
+# Prepare data
+bar_values = []
+for df in line_dfs:
+    bar_values.append([df[col_name+label][100] for label in ds_keys])
 
-ax_left.set_xlabel("Training Step", fontsize=14)
-ax_left.set_ylabel("# Search Calls", fontsize=14)
-ax_left.set_xlim(-2, max_x+2)
-ax_left.set_ylim(0.6, 1.45)
-ax_left.set_ylim(0.6, 1.85)
-ax_left.xaxis.set_major_locator(ticker.MultipleLocator(50))  # every n steps
-ax_left.yaxis.set_major_locator(ticker.MultipleLocator(0.2)) # every x in score
-ax_left.grid(True)
+# Convert to numpy array for easier indexing: shape (3, 7)
+bar_values = np.array(bar_values)
+# Bar plot settings
+y = np.arange(len(ds_keys))  # vertical positions
+height = 0.25  # thickness of bars
 
-ax_left.text(
-    x=max_x - 65, y=1.02,
-    s="↑multi-hop search",
-    color='black', fontsize=12, va='bottom', ha='left', weight='bold', zorder=6
-)
-ax_left.text(
-    x=max_x - 65, y=0.98,
-    s="↓single-hop search",
-    color='black', fontsize=12, va='top', ha='left', weight='bold', zorder=6
-)
+# Clear previous plot
+ax_left.clear()
 
-ax_left.legend(loc='center left', bbox_to_anchor=(1.1, 0.5), labels=exp_names)
-ax_left.set_title("(a)", x=-0.15, y=1.0, fontsize=18, weight='bold')
-# ax_left.legend(loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.15))
-ax_left.legend(loc='lower right', ncol=2)
+# Plot horizontal bars
+ax_left.barh(len(ds_keys)-1-(y - height), bar_values[0], height, label=exp_names[0], color=line_palette[0], zorder=6, alpha=0.8)
+ax_left.barh(len(ds_keys)-1-(y ),         bar_values[1], height, label=exp_names[1], color=line_palette[1], zorder=5, alpha=0.8)
+ax_left.barh(len(ds_keys)-1-(y + height), bar_values[2], height, label=exp_names[2], color=line_palette[2], zorder=4, alpha=0.8)
+
+# Add vertical line at x = 1.0 to distinguish single vs multi-hop
+ax_left.axvline(x=1.0, color='orange', linewidth=1.5, linestyle='--', label=exp_names[-1], zorder=3)
+
+# Axes formatting
+ax_left.set_xlabel("# Search Calls per Sample", fontsize=12)
+ax_left.set_yticks(y)
+ax_left.set_yticklabels(ds_values[::-1], fontsize=10)
+ax_left.set_xlim(0.55, 2.05)
+ax_left.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
+# ax_left.grid(True, axis='x', linestyle='--', alpha=0.5)
+ax_left.spines['top'].set_visible(False)
+ax_left.spines['right'].set_visible(False)
+
+# Tweak layout
+ax_left.set_title("(a)", x=-0.2, y=1.02, fontsize=18, weight='bold')
+ax_left.legend(loc='upper right', ncol=1, fontsize=10)
+
 
 # === Right Panel: Radar Plot ===
 radar_csv = "visualize/data/3b_results_allowed.csv"
@@ -112,7 +117,7 @@ for i, category in enumerate(categories):
     ax_right.text(angle_rad, 1.2, category, size=12,
             horizontalalignment=ha, verticalalignment=va, weight='bold')
 
-ax_right.legend(loc='center left', bbox_to_anchor=(1.2, 0.5))
+ax_right.legend(loc='center left', bbox_to_anchor=(1.2, 0.5), fontsize=10)
 ax_right.set_title("(b)", x=-0.3, y=1.0, fontsize=18, weight='bold')
 
 # plt.tight_layout()

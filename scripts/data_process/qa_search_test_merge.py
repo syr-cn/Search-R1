@@ -98,6 +98,7 @@ if __name__ == '__main__':
     hdfs_dir = args.hdfs_dir
 
     all_test_dataset = datasets.concatenate_datasets(all_dataset)
+    print(all_test_dataset[0])
     all_test_dataset.to_parquet(os.path.join(local_dir, f'{args.filename}.parquet'))
 
     if hdfs_dir is not None:

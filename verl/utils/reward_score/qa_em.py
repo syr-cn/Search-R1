@@ -68,8 +68,8 @@ def validate_format(text: str):
     return: (is valid)
     """
     # extract all assistant responses
-    if '<|im_start|>assistant' in text:
-        prompt, response = text.split("<|im_start|>assistant", 1)
+    assert '<|im_start|>assistant' in text
+    prompt, response = text.split("<|im_start|>assistant", 1)
     if '<refine>' in prompt:
         token_list = ['think', 'search', 'refine', 'answer']
     else:
@@ -137,6 +137,7 @@ def extract_information_list(solution_str):
     return matches
 
 def extract_refine(solution_str):
+    assert '<|im_start|>assistant' in solution_str
     solution_str = solution_str.split('<|im_start|>assistant')[1]
     info_pattern = r'<refine>(.*?)</refine>'
     matches = re.findall(info_pattern, solution_str, re.DOTALL)
@@ -229,17 +230,23 @@ def compute_score_em(solution_str, ground_truth, method='strict', format_score=0
         print(f"Golden answers: {ground_truth['target']}")
         print(f"Extracted answer: {answer}")
         print(f"Solution string: {solution_str}")
-    
+
     if answer is None:
         return 0
     else:
-        if em_check(answer, ground_truth['target']):
-            return score
-        elif refine_score > 0:
-            refine_score_subem = compute_refine_score_subem(solution_str, ground_truth, method=method, format_score=format_score, score=refine_score)
-            return refine_score_subem
+        em_score = em_check(answer, ground_truth['target'])
+        format_validity = validate_format(solution_str)
+        refine_subem = compute_refine_score_subem(solution_str, ground_truth, format_score=False, score=True)
+
+        if em_score > 0:
+            return em_score
         else:
-            return format_score
+            score = 0.0
+            if format_validity:
+                score += format_score
+            if refine_subem > 0:
+                score += refine_score
+            return score
 
 
 def compute_score_subem(solution_str, ground_truth, method='strict', format_score=0., score=1.):

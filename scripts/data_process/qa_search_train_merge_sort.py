@@ -256,6 +256,7 @@ if __name__ == '__main__':
             f.write(f'{difficulty_score} {filter_score}\n')
 
     # all_train_dataset = all_train_dataset.filter(lambda example: example['filter_score'] != 0)
+    print(all_train_dataset[0])
     all_train_dataset.to_parquet(os.path.join(local_dir, 'train.parquet'))
 
     assert hdfs_dir is None

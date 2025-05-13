@@ -22,6 +22,7 @@ exp_names = [
     # 'Search-R1-Instruct',
     'ReSearch-Base',
     'AutoRefine-Instruct',
+    'Naive Retrieval'
 ]
 
 col_names = [
@@ -31,7 +32,7 @@ col_names = [
     "on 4 multi-hop benchmarks",
 ]
 
-fig, axes = plt.subplots(2, 4, figsize=(14, 7.5))
+fig, axes = plt.subplots(2, 4, figsize=(14, 8))
 axes = axes.flatten()
 
 selected_columns = [
@@ -53,6 +54,7 @@ min_x = 0
 max_y = [1.4, 1.6, 1.3, 1.8]
 max_y = [2.5, 2.5, 2.5, 2.5]
 min_y = [0.7, 0.7, 0.7, 0.7]
+min_y = [0.9, 0.9, 0.9, 0.9]
 for i in range(4):
     col = selected_columns[i]
     col_name = col_names[i]
@@ -92,6 +94,9 @@ exp_dfs[2]["critic/info_score/mean"] = exp_dfs[2]["critic/info_score/mean"] - .0
 exp_dfs[2]["val/information_scores/single"] = exp_dfs[2]["val/information_scores/single"] - .014
 exp_dfs[2]["val/information_scores/mean"] = exp_dfs[2]["val/information_scores/mean"] - .006
 
+# for col in selected_columns:
+#     exp_dfs[2][col] = exp_dfs[2][col][:121]
+
 y_labels = [
     'Success Rate (%)',
     '',
@@ -127,8 +132,8 @@ for i in range(4):
     axes[i+4].yaxis.set_major_formatter(FormatStrFormatter('%d'))
     axes[i+4].grid(True)
 
-fig.text(0.5, 0.94, '(a) Search Frequency', ha='center', va='bottom', fontsize=16, weight='bold')
-fig.text(0.5, 0.44, '(b) Search Quality', ha='center', va='bottom', fontsize=16, weight='bold')
+fig.text(0.5, 0.95, '(a) Search Frequency', ha='center', va='bottom', fontsize=16, weight='bold')
+fig.text(0.5, 0.45, '(b) Search Quality', ha='center', va='bottom', fontsize=16, weight='bold')
 fig.legend(handles=lines, loc='lower center', ncol=4)
 plt.tight_layout()
 plt.subplots_adjust(top=0.90, bottom=0.12, hspace=0.8, wspace=0.13)

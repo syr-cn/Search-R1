@@ -39,15 +39,15 @@ titles = [
 
 y_labels = [
     '# Search Calls',
-    'Success Rate',
-    'Success Rate',
+    'Success Rate (%)',
+    'Success Rate (%)',
 ]
     
 max_x = 165
 y_lim = [
-    (0.58, 2.52),
-    (0.13, 0.82),
-    (0.05, 0.82),
+    (0.58, 2.55),
+    (13, 82),
+    (5, 82),
 ]
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 3))
@@ -55,9 +55,10 @@ axes = axes.flatten()
 
 # idx = 0
 for idx in range(3):
-    l1, = axes[idx].plot(exp_dfs[0][selected_columns[idx]][:max_x].dropna(), label=exp_names[0], alpha=1, color=line_palette[0], linestyle='-', linewidth=1.5, zorder=6)
-    l2, = axes[idx].plot(exp_dfs[1][selected_columns[idx]][:max_x].dropna(), label=exp_names[1], alpha=1, color=line_palette[1], linestyle='-', linewidth=1.5, zorder=5)
-    l3, = axes[idx].plot(exp_dfs[2][selected_columns[idx]][:max_x].dropna(), label=exp_names[2], alpha=1, color=line_palette[2], linestyle='-', linewidth=1.5, zorder=4)
+    scale = 1 if idx==0 else 100
+    l1, = axes[idx].plot(exp_dfs[0][selected_columns[idx]][:max_x].dropna()*scale, label=exp_names[0], alpha=1, color=line_palette[0], linestyle='-', linewidth=1.5, zorder=6)
+    l2, = axes[idx].plot(exp_dfs[1][selected_columns[idx]][:max_x].dropna()*scale, label=exp_names[1], alpha=1, color=line_palette[1], linestyle='-', linewidth=1.5, zorder=5)
+    l3, = axes[idx].plot(exp_dfs[2][selected_columns[idx]][:max_x].dropna()*scale, label=exp_names[2], alpha=1, color=line_palette[2], linestyle='-', linewidth=1.5, zorder=4)
     if idx == 0:
         lines = [l1, l2, l3]
     # axes[idx].legend(loc='upper left', fontsize=10, frameon=False)

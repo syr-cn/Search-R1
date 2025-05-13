@@ -14,7 +14,8 @@ colors = [
 
 # Step 1: Read the two CSV files
 csv_names = [
-    'visualize/wandb/ours-base-f1-wScore.csv',
+    'visualize/wandb/ours-f1-refScore-2.csv',
+    # 'visualize/wandb/ours-base-f1-wScore.csv',
     'visualize/wandb/searchr1-base-may8.csv',
     'visualize/wandb/research-base-may9.csv',
     'visualize/wandb/searchr1-base_2.csv',
@@ -49,8 +50,8 @@ y_lims = [
 ]
 y_lims = [(i-.03, j+.03) for i, j in y_lims]
 max_x=165
-min_x=1
-    
+min_x=0
+
 # Reorder plot indices: move (b) to bottom left (index 3)
 plot_order = [0, 1, 2, 3]  # original indices of selected_columns
 

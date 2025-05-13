@@ -1,35 +1,67 @@
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 num_gpus=8
+# export CUDA_VISIBLE_DEVICES="4,5,6,7"
+# num_gpus=4
+export HF_ENDPOINT=https://hf-mirror.com
 
 # set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS # vllm + qwen2-7b with flash_attn has some issues
 
 # max_prompt_length = (config['training']['max_start_length'] + config['training']['max_response_length'] * (config['training']['max_turns'] - 1) + config['training']['max_obs_length'] * config['training']['max_turns'])
 # 4096 >= (2048 + 500 * (2 - 1) + 500 * 2)
+# 5120 >= (2048 + 500 * (3 - 1) + 500 * 3)
+# 6144 >= (2048 + 512 * (4 - 1) + 512 * 4)
+# 6656 >= (2048 + 512 * (5 - 1) + 512 * 5)
+# 6656 >= (2048 + 512 * (3 - 1) + 1024 * 3)
 
-for topk in 1 5 7
+for topk in 3 1 5 7
 do
 {
-    data_name=nq_hotpotqa_train_refine_score
-    export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_refine_sort3_easy_start-r1-grpo-qwen2.5-3b-em/actor/best_val_step_200"
-    export EXPERIMENT_NAME="eval-ours-r1-grpo-qwen2.5-3b-em-top$topk"
+    data_name=nq_hotpotqa_train_autorefine
+    export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_autorefine-grpo-qwen2.5-3b-f1-ref0.1/actor/best_val_step_280"
+    export EXPERIMENT_NAME="eval-ours-r1-grpo-qwen2.5-3b-f1-step280-top$topk"
+    # export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_autorefine-grpo-qwen2.5-3b-it-f1-ref0.1/actor/best_val_step_280"
+    # export EXPERIMENT_NAME="eval-ours-r1-grpo-qwen2.5-3b-it-f1-step280-top$topk"
+    
+    # data_name="nq_hotpotqa_train_refine_overhaul_2_score"
+    # export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_refine_overhaul_2_score-research-grpo-qwen2.5-3b-em-ref0.1/actor/best_val_step_160"
+    # export EXPERIMENT_NAME="eval-ours-grpo-qwen2.5-3b-f1-step160-top$topk"
 
     # data_name=nq_hotpotqa_train_base_score
-    # export BASE_MODEL="PeterJinGo/SearchR1-nq_hotpotqa_train-qwen2.5-3b-it-em-grpo"
+    # export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_base_score-search-r1-grpo-qwen2.5-3b-em/actor/best_step_145"
     # export EXPERIMENT_NAME="eval-searchr1-r1-grpo-qwen2.5-3b-em-top$topk"
+
+    # data_name=nq_hotpotqa_train_base_score
+    # export BASE_MODEL="verl_checkpoints/nq_hotpotqa_train_base_score-research-grpo-qwen2.5-3b-em/actor/best_val_step_120"
+    # export EXPERIMENT_NAME="eval-research-grpo-qwen2.5-3b-step120-top$topk"
+
+
+        # data.max_prompt_length=6656 \
+        # data.max_response_length=512 \
+        # data.max_start_length=2048 \
+        # data.max_obs_length=1024 \
+        # max_turns=3 \
+        
+        # data.max_prompt_length=6656 \
+        # data.max_response_length=512 \
+        # data.max_start_length=2048 \
+        # data.max_obs_length=512 \
+        # max_turns=5 \
 
     export DATA_DIR=data/${data_name}
     PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
+        reward_model.reward_style="F1" \
         data.train_files=$DATA_DIR/train.parquet \
         data.val_files=$DATA_DIR/test.parquet \
         data.train_data_num=null \
         data.val_data_num=null \
-        data.train_batch_size=512 \
+        data.train_batch_size=256 \
         data.val_batch_size=256 \
-        data.max_prompt_length=5120 \
-        data.max_response_length=500 \
+        data.max_prompt_length=6656 \
+        data.max_response_length=512 \
         data.max_start_length=2048 \
-        data.max_obs_length=1000 \
+        data.max_obs_length=1024 \
+        max_turns=3 \
         data.shuffle_train_dataloader=true \
         algorithm.adv_estimator=grpo \
         algorithm.filter_groups.enable=false \
@@ -40,8 +72,9 @@ do
         actor_rollout_ref.model.enable_gradient_checkpointing=true \
         actor_rollout_ref.model.use_remove_padding=True \
         actor_rollout_ref.actor.refine_lambda=-1 \
+        actor_rollout_ref.actor.refine_score=0.1 \
+        actor_rollout_ref.actor.format_score=0.0 \
         actor_rollout_ref.actor.optim.lr=1e-6 \
-        actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.95 \
         actor_rollout_ref.actor.use_kl_loss=true \
         actor_rollout_ref.actor.ppo_mini_batch_size=256 \
         actor_rollout_ref.actor.ppo_micro_batch_size=64 \
@@ -60,17 +93,14 @@ do
         actor_rollout_ref.rollout.n_agent=5 \
         actor_rollout_ref.rollout.temperature=1 \
         actor_rollout_ref.actor.state_masking=true \
-        algorithm.kl_ctrl.kl_coef=0.001 \
-        trainer.critic_warmup=0 \
         trainer.logger=[] \
         +trainer.val_only=true \
         +trainer.val_before_train=true \
-        trainer.experiment_name=$EXPERIMENT_NAME \
-        reward_model.val_num_examine=1000000 \
+        reward_model.val_num_examine=100 \
         trainer.default_hdfs_dir=null \
         trainer.n_gpus_per_node=$num_gpus \
         trainer.nnodes=1 \
-        max_turns=2 \
+        trainer.experiment_name=$EXPERIMENT_NAME \
         retriever.url="http://127.0.0.1:8000/retrieve" \
         retriever.topk=$topk \
         2>&1 | tee log/$EXPERIMENT_NAME.log \

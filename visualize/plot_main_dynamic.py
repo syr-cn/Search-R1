@@ -13,8 +13,8 @@ colors = [
 
 # Step 1: Read the two CSV files
 csv_names = [
-    'visualize/wandb/ours-base-f1-wScore.csv',
-    'visualize/wandb/ours-instruct-f1-wScore.csv',
+    'visualize/wandb/ours-f1-refScore-2.csv',
+    'visualize/wandb/ours-instruct-f1-refScore.csv',
     'visualize/wandb/ours-instruct.csv',
     'visualize/wandb/searchr1-base-may8.csv',
     'visualize/wandb/research-base-may9.csv',
@@ -39,8 +39,8 @@ selected_columns = [
     "response_length/mean",
     "env/number_of_valid_search",
 ]
-for col in selected_columns:
-    exp_dfs[1][col] = exp_dfs[1][col][:122]
+# for col in selected_columns:
+#     exp_dfs[1][col] = exp_dfs[1][col][:122]
 
 y_labels = [
     "Training Reward",
@@ -51,11 +51,11 @@ y_labels = [
 
 y_lims = [
     (.07, .73),
-    (.07, .73),
+    (.07, .53),
     # (.87, 2.03),
     (600, 1600),
 ]
-x_max=172
+x_max=181
     
 # Reorder plot indices: move (b) to bottom left (index 3)
 plot_order = [0, 1, 2]  # original indices of selected_columns
